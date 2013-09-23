@@ -4,8 +4,8 @@ class NQPy::Actions is HLL::Actions;
 
 method program($/) {
     my $stmts := QAST::Stmts.new();
-    for $<statement> {
-        $stmts.push($_.ast);
+    for $<statement> -> $stmt {
+        $stmts.push($stmt.ast);
     }
 
     make QAST::Block.new($stmts);
