@@ -11,9 +11,7 @@ method program($/) {
     make QAST::Block.new($stmts);
 }
 
-method statement:sym<print>($/) {
-    make QAST::Op.new(:op<say>, $<EXPR>.ast);
-}
+method statement:sym<expr>($/) { make $<EXPR>.ast; }
 
 ## 2.4: Literals
 method string($/) { make $<quote_EXPR>.ast; }
@@ -25,6 +23,15 @@ method string($/) { make $<quote_EXPR>.ast; }
 method term:sym<string>($/)  { make $<string>.ast; }
 method term:sym<integer>($/) { make QAST::IVal.new(:value($<integer>.ast)) }
 method term:sym<float>($/)   { make QAST::NVal.new(:value($<dec_number>.ast)) }
+
+method term:sym<nqp::op>($/) {
+    my $op := QAST::Op.new(:op(~$<op>));
+    for $<EXPR> -> $e {
+        $op.push: $e.ast;
+    }
+
+    make $op;
+}
 
 # 7: Simple statements
 # TODO

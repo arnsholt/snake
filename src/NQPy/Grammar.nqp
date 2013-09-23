@@ -14,17 +14,19 @@ token program {
 }
 
 proto token statement {*}
-token statement:sym<print> {
-    <sym> <.ws> <EXPR>
-}
+token statement:sym<expr> { <EXPR> }
 
 # 2: Lexical analysis
 ## 2.3: Identifiers and keywords
 # TODO: xid_start/xid_continue, which is defined as anything that is
 # equivalent to id_start/id_continue when NFKC-normalized.
 token identifier  { <id_start> <id_continue>* }
-token id_start    { <+:Lu+:Ll+:Lt+:Lm+:Lo+:Nl+[_]+:Other_ID_Start> }
-token id_continue { <+id_start+:Mn+:Mc+:Nd+:Pc+:Other_ID_Continue> }
+# Other_ID_Start and _Continue don't exist in NQP yet, so let's skip those for
+# now.
+#token id_start    { <+:Lu+:Ll+:Lt+:Lm+:Lo+:Nl+[_]+:Other_ID_Start> }
+#token id_continue { <+id_start+:Mn+:Mc+:Nd+:Pc+:Other_ID_Continue> }
+token id_start    { <+:Lu+:Ll+:Lt+:Lm+:Lo+:Nl+[_]> }
+token id_continue { <+id_start+:Mn+:Mc+:Nd+:Pc> }
 
 ### 2.3.1: Keywords
 proto token keyword {*}
@@ -130,6 +132,8 @@ token term:sym<integer> {
 token term:sym<float> { <dec_number> }
 
 token circumfix:sum<( )> { '(' <.ws> <expression_list> ')' }
+
+token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' <EXPR>+ }
 
 ## 6.13: Expression lists
 rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
