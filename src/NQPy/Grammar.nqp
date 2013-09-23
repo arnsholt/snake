@@ -13,9 +13,6 @@ token program {
     <statement>*
 }
 
-proto token statement {*}
-token statement:sym<expr> { <EXPR> }
-
 # 2: Lexical analysis
 ## 2.3: Identifiers and keywords
 # TODO: xid_start/xid_continue, which is defined as anything that is
@@ -139,7 +136,8 @@ token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' <EXPR>+ }
 rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
 
 # 7: Simple statements
-# TODO
+proto token statement {*}
+token statement:sym<expr> { <EXPR> }
 
 # 8: Compound statements
 # TODO
