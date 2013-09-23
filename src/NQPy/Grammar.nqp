@@ -122,11 +122,9 @@ token DEDENT {
 ## 6.2: Atoms
 token term:sym<identifier> { <identifier> }
 
-token term:sym<string> { <string> }
-token term:sym<integer> {
-    <integer>
-}
-token term:sym<float> { <dec_number> }
+token term:sym<string>  { <string> }
+token term:sym<integer> { <integer> }
+token term:sym<float>   { <dec_number> }
 
 token circumfix:sum<( )> { '(' <.ws> <expression_list> ')' }
 
