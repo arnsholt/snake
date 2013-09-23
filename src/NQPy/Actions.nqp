@@ -17,7 +17,28 @@ method statement:sym<expr>($/) { make $<EXPR>.ast; }
 method string($/) { make $<quote_EXPR>.ast; }
 
 ## 2.5: Operators
-# TODO
+#method prefix:sym<~>($/) { ... }
+#method prefix:sym<+>($/) { ... }
+#method prefix:sym<->($/) { ... }
+#
+#method infix:sym<+> ($/) { ... }
+#method infix:sym<-> ($/) { ... }
+#method infix:sym<*> ($/) { ... }
+#method infix:sym<**>($/) { ... }
+#method infix:sym</> ($/) { ... }
+#method infix:sym<//>($/) { ... }
+#method infix:sym<%> ($/) { ... }
+#method infix:sym«<<»($/) { ... }
+#method infix:sym«>>»($/) { ... }
+#method infix:sym<&> ($/) { ... }
+#method infix:sym<|> ($/) { ... }
+#method infix:sym<^> ($/) { ... }
+#method infix:sym«<» ($/) { ... }
+#method infix:sym«>» ($/) { ... }
+#method infix:sym«<=»($/) { ... }
+#method infix:sym«>=»($/) { ... }
+#method infix:sym<==>($/) { ... }
+#method infix:sym<!=>($/) { ... }
 
 # 6: Expressions
 method term:sym<string>($/)  { make $<string>.ast; }
