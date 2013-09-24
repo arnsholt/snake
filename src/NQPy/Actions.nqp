@@ -2,17 +2,6 @@ use NQPHLL;
 
 class NQPy::Actions is HLL::Actions;
 
-method program($/) {
-    my $stmts := QAST::Stmts.new();
-    for $<statement> -> $stmt {
-        $stmts.push($stmt.ast);
-    }
-
-    make QAST::Block.new($stmts);
-}
-
-method statement:sym<expr>($/) { make $<EXPR>.ast; }
-
 ## 2.4: Literals
 method string($/) { make $<quote_EXPR>.ast; }
 
@@ -55,9 +44,34 @@ method term:sym<nqp::op>($/) {
 }
 
 # 7: Simple statements
-# TODO
+method simple-statement:sym<expr>($/) { make $<EXPR>.ast; }
 
 # 8: Compound statements
-# TODO
+method compound-statement:sym<if>($/) {
+    # TODO
+}
+
+method statement($/) { make $<stmt>.ast; }
+
+method stmt-list($/) {
+    my $stmts := QAST::Stmts.new();
+    for $<simple-statement> -> $stmt {
+        $stmts.push($stmt.ast);
+    }
+
+    make $stmts;
+}
+
+# 9: Top-level components
+method file-input($/) {
+    my $stmts := QAST::Stmts.new();
+    for $<line> -> $line {
+        $stmts.push($line.ast) if $line.ast;
+    }
+
+    make QAST::Block.new($stmts);
+}
+
+method line($/) { make $<statement>.ast if $<statement>; }
 
 # vim: ft=perl6

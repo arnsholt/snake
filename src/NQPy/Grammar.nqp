@@ -3,17 +3,19 @@ use NQPHLL;
 grammar NQPy::Grammar is HLL::Grammar;
 
 method TOP() {
-    my $*INDENT := [0];
-    my $*TABBED := 0;
+    my @*INDENT := nqp::list_i(0);
 
-    return self.program;
-}
-
-token program {
-    <statement>*
+    return self.file-input;
 }
 
 # 2: Lexical analysis
+## 2.1: Line structure
+token NEWLINE { <.ws> [\n | $] }
+
+### 2.1.9: Whitespace between tokens
+token wsc { <[ \t\f]> }
+token ws  { <!ww> <.wsc>* || <.wsc>+ ['#' \N+ | \\ \n <.wsc>*] }
+
 ## 2.3: Identifiers and keywords
 # TODO: xid_start/xid_continue, which is defined as anything that is
 # equivalent to id_start/id_continue when NFKC-normalized.
@@ -108,8 +110,6 @@ token infix:sym<!=> { <sym> }
 ## 2.6: Delimiters
 # Handled elsewhere, since we don't have a separate lexer stage.
 
-token ws { <!ww> \h* || \h+ }
-
 token INDENT {
     <!> # TODO
 }
@@ -126,7 +126,7 @@ token term:sym<string>  { <string> }
 token term:sym<integer> { <integer> }
 token term:sym<float>   { <dec_number> }
 
-token circumfix:sum<( )> { '(' <.ws> <expression_list> ')' }
+token circumfix:sym<( )> { '(' <.ws> <expression_list> ')' }
 
 token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' <EXPR>+ }
 
@@ -134,10 +134,29 @@ token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' <EXPR>+ }
 rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
 
 # 7: Simple statements
-proto token statement {*}
-token statement:sym<expr> { <EXPR> }
+proto token simple-statement {*}
+token simple-statement:sym<expr> { <EXPR> }
 
 # 8: Compound statements
-# TODO
+proto token compound-statement {*}
+rule compound-statement:sym<if> { <sym> <EXPR> ':' <suite> }
+
+rule suite { <stmt-list> <.NEWLINE>
+           | <.NEWLINE> <.INDENT> <statement>+ <.DEDENT> }
+
+token statement { [$<stmt>=<stmt-list> | $<stmt>=<compound-statement>] }
+
+token stmt-list { <simple-statement>+ %% [<.ws> ';' <.ws>] }
+
+# 9: Top-level components
+token file-input { <line>* }
+token line { ^^ [<.NEWLINE> | <statement>] }
+
+# One potential strategy:
+# - <indent> gobbles up all the leading whitespace and compares the indent
+#   value $indent with the stack.
+#   - $indent == @*INDENT[0] => <.MARKER: 'OK'>
+#   - $indent > @*INDENT[0]  => @*INDENT.unshift: $indent; <.MARKER: 'INDENT>
+token indent { <?> } # TODO
 
 # vim: ft=perl6
