@@ -168,11 +168,4 @@ token stmt-list { <simple-statement>+ %% [<.ws> ';' <.ws>] }
 token file-input { <line>* [$ || <.panic: 'Trailing text'>] }
 token line { ^^ <.NEWLINE> | <statement> }
 
-# One potential strategy:
-# - <indent> gobbles up all the leading whitespace and compares the indent
-#   value $indent with the stack.
-#   - $indent == @*INDENT[0] => <.MARKER: 'OK'>
-#   - $indent > @*INDENT[0]  => @*INDENT.unshift: $indent; <.MARKER: 'INDENT>
-token indent { <?> } # TODO
-
 # vim: ft=perl6
