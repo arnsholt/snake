@@ -29,6 +29,12 @@ method string($/) { make $<quote_EXPR>.ast; }
 #method infix:sym<==>($/) { ... }
 #method infix:sym<!=>($/) { ... }
 
+method check-indent($/) {
+    if $<sports> {
+        # TODO
+    }
+}
+
 # 6: Expressions
 method term:sym<string>($/)  { make $<string>.ast; }
 method term:sym<integer>($/) { make QAST::IVal.new(:value($<integer>.ast)) }
