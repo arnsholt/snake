@@ -13,7 +13,7 @@ method TOP() {
 token NEWLINE { <.ws> [\n | $] }
 
 ### 2.1.9: Whitespace between tokens
-token wsc { <[ \t\f]> }
+token wsc { <[\ \t\f]> }
 token ws  { <!ww> <.wsc>* || <.wsc>+ ['#' \N+ | \\ \n <.wsc>*] }
 
 ## 2.3: Identifiers and keywords
@@ -114,13 +114,13 @@ token INDENT {
     # Gobble up leading whitespace, push new indent onto stack (or die if bad
     # indent).
     #<!> # TODO
-    ^^ <sports> <.MARKER: 'INDENT'>
+    ^^ <sports> <.MARKER: 'INDENT'> || <.panic: "Dedent not at beginning of line!">
 }
 
 token DEDENT {
     # Gobble up leading whitespace, pop until we're done (or die if bad
     # indent).
-    ^^ <sports> <.MARKER: 'INDENT'>
+    [^^ <sports> <.MARKER: 'INDENT'> | $<EOF>=<?> $] || <.panic: "Indent not at beginning of line!">
 }
 
 token check-indent {
@@ -132,7 +132,7 @@ token check-indent {
 # and must be rejected (2.1.8: "Indentation is rejected as inconsistent if a
 # source file mixes tabs and spaces in a way that makes the meaning dependent
 # on the worth of a tab in spaces").
-token sports { \f? (' '*) (\t*) [<[ \f]> <.panic: "Ambiguous indentation">]? }
+token sports { \f? (' '*) (\t*) [<[\ \f]> <.panic: "Ambiguous indentation">]? }
 
 # 6: Expressions
 ## 6.2: Atoms
@@ -144,7 +144,7 @@ token term:sym<float>   { <dec_number> }
 
 token circumfix:sym<( )> { '(' <.ws> <expression_list> ')' }
 
-token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' <EXPR>+ }
+token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [<EXPR>+ % [:s ',' ]] }
 
 ## 6.13: Expression lists
 rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
@@ -157,8 +157,9 @@ token simple-statement:sym<expr> { <EXPR> }
 proto token compound-statement {*}
 rule compound-statement:sym<if> { <sym> <EXPR> ':' <suite> }
 
-rule suite { $<stmts>=<stmt-list> <.NEWLINE>
-           | <.NEWLINE> <.INDENT> $<stmts>=<statement>+ <.DEDENT> }
+proto token suite {*}
+token suite:sym<runon> { <stmt-list> <.NEWLINE> }
+token suite:sym<normal> { <.NEWLINE> <.INDENT> <statement>+ <.DEDENT> }
 
 token statement { <.check-indent> [$<stmt>=<stmt-list> <.NEWLINE> | $<stmt>=<compound-statement>] }
 

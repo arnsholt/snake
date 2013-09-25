@@ -41,7 +41,7 @@ method INDENT($/) {
 }
 
 method DEDENT($/) {
-    my $new := $<sports>.ast;
+    my $new := $<EOF> ?? 0 !! $<sports>.ast;
     nqp::shift_i(@*INDENT) while $new < @*INDENT[0];
     nqp::die("Bad dedent: saw $new but expected @*INDENT[0]") if $new != @*INDENT[0];
 }
@@ -84,12 +84,18 @@ method simple-statement:sym<expr>($/) { make $<EXPR>.ast; }
 
 # 8: Compound statements
 method compound-statement:sym<if>($/) {
-    say("if");
     make QAST::Op.new(:op<if>, $<EXPR>.ast, $<suite>.ast);
 }
 
-method suite($/) {
-    make $<stmts>.ast;
+method suite:sym<runon>($/) { make $<stmt-list>.ast; }
+
+method suite:sym<normal>($/) {
+    my $stmts := QAST::Stmts.new();
+    for $<statement> -> $stmt {
+        $stmts.push: $stmt.ast;
+    }
+
+    make $stmts;
 }
 
 method statement($/) { make $<stmt>.ast; }
