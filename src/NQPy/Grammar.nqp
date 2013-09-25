@@ -128,8 +128,10 @@ token check-indent {
 
 # Spaces or tabs. A valid Python indent consists of any number of spaces, then
 # any number of tabs. If spaces are used after a tab, the indent is ambiguous
-# and must be rejected (X.X.X: "Lorem ipsum, dolor sit amet").
-token sports { ' '* \t* [' ' <.panic: "Ambiguous indentation">]? }
+# and must be rejected (2.1.8: "Indentation is rejected as inconsistent if a
+# source file mixes tabs and spaces in a way that makes the meaning dependent
+# on the worth of a tab in spaces").
+token sports { \f? (' '*) (\t*) [<[ \f]> <.panic: "Ambiguous indentation">]? }
 
 # 6: Expressions
 ## 6.2: Atoms
