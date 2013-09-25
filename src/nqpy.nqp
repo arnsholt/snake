@@ -10,7 +10,7 @@ $comp.parsegrammar(NQPy::Grammar);
 $comp.parseactions(NQPy::Actions);
 
 sub MAIN(*@args) {
-    $comp.command_line(@args, :encoding<utf8>);
+    $comp.command_line(@args[0], :encoding<utf8>);
 }
 
 # vim: ft=perl6
