@@ -31,8 +31,21 @@ method string($/) { make $<quote_EXPR>.ast; }
 
 method check-indent($/) {
     if $<sports> {
-        # TODO
+        my $got      := $<sports>.ast;
+        my $expected := @*INDENT[0];
+        nqp::die("Incorrect indentation: saw $got when expecting $expected") if $got != $expected;
     }
+}
+
+method sports($/) {
+    my $indent := 0;
+    $indent := $indent + nqp::chars(~$/[0]);
+    if ~$/[1] {
+        $indent := $indent + (8 - $indent % 8); # Increment to nearest multiple of 8
+        $indent := $indent + 8*(nqp::chars(~$/[1])-1);
+    }
+
+    make $indent;
 }
 
 # 6: Expressions
