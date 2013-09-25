@@ -113,17 +113,18 @@ token infix:sym<!=> { <sym> }
 token INDENT {
     # Gobble up leading whitespace, push new indent onto stack (or die if bad
     # indent).
-    <!> # TODO
+    #<!> # TODO
+    ^^ <sports> <.MARKER: 'INDENT'>
 }
 
 token DEDENT {
     # Gobble up leading whitespace, pop until we're done (or die if bad
     # indent).
-    <!> # TODO
+    ^^ <sports> <.MARKER: 'INDENT'>
 }
 
 token check-indent {
-    <.MARKED: 'INDENT'> || <sports>
+    <.MARKED: 'INDENT'> || ^^ <sports>
 }
 
 # Spaces or tabs. A valid Python indent consists of any number of spaces, then
@@ -156,16 +157,16 @@ token simple-statement:sym<expr> { <EXPR> }
 proto token compound-statement {*}
 rule compound-statement:sym<if> { <sym> <EXPR> ':' <suite> }
 
-rule suite { <stmt-list> <.NEWLINE>
-           | <.NEWLINE> <.INDENT> <statement>+ <.DEDENT> }
+rule suite { $<stmts>=<stmt-list> <.NEWLINE>
+           | <.NEWLINE> <.INDENT> $<stmts>=<statement>+ <.DEDENT> }
 
-token statement { <.check-indent> [$<stmt>=<stmt-list> | $<stmt>=<compound-statement>] }
+token statement { <.check-indent> [$<stmt>=<stmt-list> <.NEWLINE> | $<stmt>=<compound-statement>] }
 
 token stmt-list { <simple-statement>+ %% [<.ws> ';' <.ws>] }
 
 # 9: Top-level components
-token file-input { <line>* }
-token line { ^^ [<.NEWLINE> | <statement>] }
+token file-input { <line>* [$ || <.panic: 'Trailing text'>] }
+token line { ^^ <.NEWLINE> | <statement> }
 
 # One potential strategy:
 # - <indent> gobbles up all the leading whitespace and compares the indent
