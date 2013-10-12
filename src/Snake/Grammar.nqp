@@ -1,6 +1,6 @@
 use NQPHLL;
 
-grammar NQPy::Grammar is HLL::Grammar;
+grammar Snake::Grammar is HLL::Grammar;
 
 method TOP() {
     my @*INDENT := nqp::list_i(0);

@@ -1,5 +1,5 @@
 blib/*.c
 blib/*.o
 blib/*.pbc
-blib/NQPy/*.pbc
-nqpy
+blib/Snake/*.pbc
+snake

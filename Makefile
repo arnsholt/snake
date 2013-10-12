@@ -2,14 +2,14 @@ NQP=../nqp/nqp
 PARROT=../nqp/install/bin/parrot
 PBC_TO_EXE=../nqp/install/bin/pbc_to_exe
 
-PBCS=blib/NQPy/Actions.pbc \
-	 blib/NQPy/Compiler.pbc \
-	 blib/NQPy/Grammar.pbc \
+PBCS=blib/Snake/Actions.pbc \
+	 blib/Snake/Compiler.pbc \
+	 blib/Snake/Grammar.pbc \
 
-nqpy: $(PBCS) src/nqpy.nqp
-	$(NQP) --target=pir src/nqpy.nqp | $(PARROT) -o blib/nqpy.pbc -
-	$(PBC_TO_EXE) blib/nqpy.pbc
-	cp blib/nqpy $@
+snake: $(PBCS) src/snake.nqp
+	$(NQP) --target=pir src/snake.nqp | $(PARROT) -o blib/snake.pbc -
+	$(PBC_TO_EXE) blib/snake.pbc
+	cp blib/snake $@
 
 blib/%.pbc: src/%.nqp
 	$(NQP) --target=pir $< | $(PARROT) -o $@ -

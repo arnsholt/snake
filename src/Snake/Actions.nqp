@@ -1,6 +1,6 @@
 use NQPHLL;
 
-class NQPy::Actions is HLL::Actions;
+class Snake::Actions is HLL::Actions;
 
 ## 2.4: Literals
 method string($/) { make $<quote_EXPR>.ast; }
