@@ -115,17 +115,17 @@ token INDENT {
     # Gobble up leading whitespace, push new indent onto stack (or die if bad
     # indent).
     #<!> # TODO
-    ^^ <sports> <.MARKER: 'INDENT'> || <.panic: "Dedent not at beginning of line!">
+    ^^ <sports> <?{ $<sports>.ast > @*INDENT[0] }> <.MARKER: 'INDENT'> || <.panic: "Dedent not at beginning of line!">
 }
 
 token DEDENT {
     # Gobble up leading whitespace, pop until we're done (or die if bad
     # indent).
-    [^^ <sports> <.MARKER: 'INDENT'> | $<EOF>=<?> $] || <.panic: "Indent not at beginning of line!">
+    [^^ <sports> <?{ $<sports>.ast < @*INDENT[0] }> <.MARKER: 'INDENT'> | $<EOF>=<?> $] || <.panic: "Indent not at beginning of line!">
 }
 
 token check-indent {
-    <.MARKED: 'INDENT'> || ^^ <sports>
+    <.MARKED: 'INDENT'> || ^^ <sports> <?{ $<sports>.ast == @*INDENT[0] }>
 }
 
 # Spaces or tabs. A valid Python indent consists of any number of spaces, then

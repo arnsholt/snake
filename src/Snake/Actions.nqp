@@ -29,29 +29,12 @@ method string($/) { make $<quote_EXPR>.ast; }
 #method infix:sym<==>($/) { ... }
 #method infix:sym<!=>($/) { ... }
 
-method INDENT($/) {
-    my $new := $<sports>.ast;
-    my $old := @*INDENT[0];
-    if $new > $old {
-        nqp::unshift_i(@*INDENT, $new);
-    }
-    else {
-        nqp::die("Bad indentation: new level $new seen, but old level is greater ($old)");
-    }
-}
+method INDENT($/) { nqp::unshift_i(@*INDENT, $<sports>.ast); }
 
 method DEDENT($/) {
     my $new := $<EOF> ?? 0 !! $<sports>.ast;
     nqp::shift_i(@*INDENT) while $new < @*INDENT[0];
     nqp::die("Bad dedent: saw $new but expected @*INDENT[0]") if $new != @*INDENT[0];
-}
-
-method check-indent($/) {
-    if $<sports> {
-        my $got      := $<sports>.ast;
-        my $expected := @*INDENT[0];
-        nqp::die("Incorrect indentation: saw $got when expecting $expected") if $got != $expected;
-    }
 }
 
 method sports($/) {
