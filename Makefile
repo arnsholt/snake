@@ -16,3 +16,6 @@ blib/%.pbc: src/%.nqp
 
 clean:
 	rm -f $(PBCS)
+
+test:
+	prove -r --exec ./snake t/sanity/*.t
