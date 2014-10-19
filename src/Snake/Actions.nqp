@@ -29,23 +29,18 @@ method string($/) { make $<quote_EXPR>.ast; }
 #method infix:sym<==>($/) { ... }
 #method infix:sym<!=>($/) { ... }
 
-method INDENT($/) { nqp::unshift_i(@*INDENT, $<sports>.ast); }
-
-method DEDENT($/) {
-    my $new := $<EOF> ?? 0 !! $<sports>.ast;
-    nqp::shift_i(@*INDENT) while $new < @*INDENT[0];
-    nqp::die("Bad dedent: saw $new but expected @*INDENT[0]") if $new != @*INDENT[0];
-}
-
 method sports($/) {
-    my $indent := 0;
-    $indent := $indent + nqp::chars(~$/[0]);
-    if ~$/[1] {
-        $indent := $indent + (8 - $indent % 8); # Increment to nearest multiple of 8
-        $indent := $indent + 8*(nqp::chars(~$/[1])-1);
-    }
+    if $<EOF> { make 0 }
+    else {
+        my $indent := 0;
+        $indent := $indent + nqp::chars(~$/[0]);
+        if ~$/[1] {
+            $indent := $indent + (8 - $indent % 8); # Increment to nearest multiple of 8
+            $indent := $indent + 8*(nqp::chars(~$/[1])-1);
+        }
 
-    make $indent;
+        make $indent;
+    }
 }
 
 # 6: Expressions
@@ -67,7 +62,9 @@ method simple-statement:sym<expr>($/) { make $<EXPR>.ast; }
 
 # 8: Compound statements
 method compound-statement:sym<if>($/) {
-    make QAST::Op.new(:op<if>, $<EXPR>.ast, $<suite>.ast);
+    my $ast := QAST::Op.new(:op<if>, $<EXPR>.ast, $<suite>[0].ast);
+    $ast.push($<suite>[1].ast) if +$<suite> > 1;
+    make $ast;
 }
 
 method suite:sym<runon>($/) { make $<stmt-list>.ast; }
@@ -99,7 +96,10 @@ method file-input($/) {
         $stmts.push($line.ast) if $line.ast;
     }
 
-    make QAST::Block.new($stmts);
+    # XXX: This has been cargo-culted from Rakudo. Should probably figure out
+    # how this API should be used (and what it can do).
+    make QAST::CompUnit.new(QAST::Block.new(QAST::Var.new(:name<__args__>,
+        :scope<local>, :decl<param>, :slurpy(1)), $stmts), :hll<snake>);
 }
 
 method line($/) { make $<statement>.ast if $<statement>; }

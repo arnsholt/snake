@@ -1,21 +1,21 @@
-NQP=../nqp/nqp
-PARROT=../nqp/install/bin/parrot
-PBC_TO_EXE=../nqp/install/bin/pbc_to_exe
+PREFIX=../nqp/install
+NQP=$(PREFIX)/bin/nqp-m
+MOAR=$(PREFIX)/bin/moar
 
-PBCS=blib/Snake/Actions.pbc \
-	 blib/Snake/Compiler.pbc \
-	 blib/Snake/Grammar.pbc \
+MOARS=blib/Snake/Actions.moarvm \
+         blib/Snake/Compiler.moarvm \
+         blib/Snake/Grammar.moarvm \
+         blib/snake.moarvm
 
-snake: $(PBCS) src/snake.nqp
-	$(NQP) --target=pir src/snake.nqp | $(PARROT) -o blib/snake.pbc -
-	$(PBC_TO_EXE) blib/snake.pbc
-	cp blib/snake $@
+.PHONY: all
 
-blib/%.pbc: src/%.nqp
-	$(NQP) --target=pir $< | $(PARROT) -o $@ -
+all: $(MOARS)
+
+blib/%.moarvm: src/%.nqp
+	$(NQP) --target=mbc --output=$@ $<
+
+test: all
+	prove -r --exec ./snake t/sanity/*.t
 
 clean:
-	rm -f $(PBCS)
-
-test:
-	prove -r --exec ./snake t/sanity/*.t
+	-rm $(MOARS)

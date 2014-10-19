@@ -68,7 +68,7 @@ token keyword:sym<raise>    { <sym> }
 token string {
     # TODO: u, r, b, triple-quotes, pretty much all of 2.4.1.
     # TODO: String literal concatentation (2.4.2).
-    <?["]> <quote_EXPR: ':q'>
+    <?['"]> <quote_EXPR: ':q'>
 }
 
 ### 2.4.4: Integer literals
@@ -111,21 +111,51 @@ token infix:sym<!=> { <sym> }
 ## 2.6: Delimiters
 # Handled elsewhere, since we don't have a separate lexer stage.
 
-token INDENT {
+token INDENT($indent = -1) {
     # Gobble up leading whitespace, push new indent onto stack (or die if bad
     # indent).
-    #<!> # TODO
-    ^^ <sports> <?{ $<sports>.ast > @*INDENT[0] }> <.MARKER: 'INDENT'> || <.panic: "Dedent not at beginning of line!">
+    <sports> <?{ self.check-indent($<sports>.ast, $indent) }>
 }
 
-token DEDENT {
-    # Gobble up leading whitespace, pop until we're done (or die if bad
-    # indent).
-    [^^ <sports> <?{ $<sports>.ast < @*INDENT[0] }> <.MARKER: 'INDENT'> | $<EOF>=<?> $] || <.panic: "Indent not at beginning of line!">
+method check-indent(int $sports, int $indent) {
+    if $indent < 0 {
+        if $sports > nqp::atpos_i(@*INDENT, 0) {
+            nqp::unshift_i(@*INDENT, $sports);
+            1 == 1;
+        }
+        else {
+            1 == 0;
+        }
+    }
+    else {
+        $sports == $indent
+    }
 }
 
-token check-indent {
-    <.MARKED: 'INDENT'> || ^^ <sports> <?{ $<sports>.ast == @*INDENT[0] }>
+#token DEDENT {
+#    <?before [^^ <sports> [<?{ self.check-dedent($<sports>.ast) }> || <.panic: "Dedent not consistent with any previous indent level">] | $<EOF>=<?> $]
+#        || <.panic: "Dedent not at beginning of line">>
+#}
+
+# This is a really hacky implementation of DEDENT. Really we just want the
+# version above. However, it looks like $/ isn't available inside a <?before>,
+# so we do it this way and implement the zero-width match ourself. The reason
+# this works is of course that match will always match successfully. If it
+# fails (that is, we're trying to match a dedent somewhere other than
+# beginning of line), it'll panic and throw an exception.
+method DEDENT() {
+    my $dedent := self.match-dedent;
+    self;
+}
+
+token match-dedent {
+    <sports> [<?{ self.check-dedent($<sports>.ast) }> || <.panic: "Dedent not consistent with any previous indent level">] | $<EOF>=<?> $
+}
+
+method check-dedent($sports) {
+    # Pop indents until we find the level we've indented back to.
+    while $sports < nqp::atpos_i(@*INDENT, 0) { nqp::shift_i(@*INDENT) }
+    $sports == nqp::atpos_i(@*INDENT, 0);
 }
 
 # Spaces or tabs. A valid Python indent consists of any number of spaces, then
@@ -133,7 +163,12 @@ token check-indent {
 # and must be rejected (2.1.8: "Indentation is rejected as inconsistent if a
 # source file mixes tabs and spaces in a way that makes the meaning dependent
 # on the worth of a tab in spaces").
-token sports { \f? (' '*) (\t*) [<[\ \f]> <.panic: "Ambiguous indentation">]? }
+token sports {
+    [ | ^^ \f? (' '*) (\t*) [<[\ \f]> <.panic: "Ambiguous indentation">]?
+      | $<EOF>=<?> $
+    ]
+    || <.panic: "Indent not at beginning of line">
+}
 
 # 6: Expressions
 ## 6.2: Atoms
@@ -156,13 +191,22 @@ token simple-statement:sym<expr> { <EXPR> }
 
 # 8: Compound statements
 proto token compound-statement {*}
-rule compound-statement:sym<if> { <sym> <EXPR> ':' <suite> }
+rule compound-statement:sym<if> {
+    :my int $indent := nqp::atpos_i(@*INDENT, 0);
+    <sym> <EXPR> ':' <suite>
+    [<.INDENT: $indent> 'else' ':' <suite>]?
+}
 
 proto token suite {*}
 token suite:sym<runon> { <stmt-list> <.NEWLINE> }
-token suite:sym<normal> { <.NEWLINE> <.INDENT> <statement>+ <.DEDENT> }
+token suite:sym<normal> {
+    <.NEWLINE>
+    <.INDENT> <statement>
+    [<.INDENT: nqp::atpos_i(@*INDENT, 0)> <statement>]*
+    <.DEDENT>
+}
 
-token statement { <.check-indent> [$<stmt>=<stmt-list> <.NEWLINE> | $<stmt>=<compound-statement>] }
+token statement { $<stmt>=<stmt-list> <.NEWLINE> | $<stmt>=<compound-statement> }
 
 token stmt-list { <simple-statement>+ %% [<.ws> ';' <.ws>] }
 

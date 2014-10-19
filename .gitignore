@@ -1,5 +1,2 @@
-blib/*.c
-blib/*.o
-blib/*.pbc
-blib/Snake/*.pbc
-snake
+blib/*.moarvm
+blib/Snake/*.moarvm

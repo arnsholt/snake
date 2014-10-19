@@ -9,8 +9,8 @@ $comp.language('snake');
 $comp.parsegrammar(Snake::Grammar);
 $comp.parseactions(Snake::Actions);
 
-sub MAIN(*@args) {
-    $comp.command_line(@args[0], :encoding<utf8>);
+sub MAIN(@args) {
+    $comp.command_line(@args, :encoding<utf8>);
 }
 
 # vim: ft=perl6
