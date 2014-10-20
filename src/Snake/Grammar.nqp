@@ -194,7 +194,8 @@ proto token compound-statement {*}
 rule compound-statement:sym<if> {
     :my int $indent := nqp::atpos_i(@*INDENT, 0);
     <sym> <EXPR> ':' <suite>
-    [<.INDENT: $indent> 'else' ':' <suite>]?
+    [<.INDENT: $indent> 'elif' <elif=.EXPR> ':' <elif=.suite>]?
+    [<.INDENT: $indent> 'else' ':' <else=.suite>]?
 }
 
 proto token suite {*}

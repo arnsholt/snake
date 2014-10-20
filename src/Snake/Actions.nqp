@@ -62,8 +62,15 @@ method simple-statement:sym<expr>($/) { make $<EXPR>.ast; }
 
 # 8: Compound statements
 method compound-statement:sym<if>($/) {
-    my $ast := QAST::Op.new(:op<if>, $<EXPR>.ast, $<suite>[0].ast);
-    $ast.push($<suite>[1].ast) if +$<suite> > 1;
+    my $ast := QAST::Op.new(:op<if>, $<EXPR>.ast, $<suite>.ast);
+    my $cur := $ast;
+    while nqp::elems($<elif>) > 0 {
+        my $new := QAST::Op.new(:op<if>, nqp::shift($<elif>).ast, nqp::shift($<elif>).ast);
+        $cur.push: $new;
+        $cur := $new;
+    }
+    $cur.push($<else>.ast) if $<else>;
+
     make $ast;
 }
 
