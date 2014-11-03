@@ -44,9 +44,10 @@ method sports($/) {
 }
 
 # 6: Expressions
-method term:sym<string>($/)  { make $<string>.ast; }
-method term:sym<integer>($/) { make QAST::IVal.new(:value($<integer>.ast)) }
-method term:sym<float>($/)   { make QAST::NVal.new(:value($<dec_number>.ast)) }
+method term:sym<identifier>($/) { make QAST::Var.new(:name(~$<identifier>), :scope<lexical>); }
+method term:sym<string>($/)     { make $<string>.ast; }
+method term:sym<integer>($/)    { make QAST::IVal.new(:value($<integer>.ast)) }
+method term:sym<float>($/)      { make QAST::NVal.new(:value($<dec_number>.ast)) }
 
 method circumfix:sym<[ ]>($/) {
     my $ast := QAST::Op.new(:op<list>);
@@ -74,7 +75,23 @@ method expression_list($/) {
 }
 
 # 7: Simple statements
-method simple-statement:sym<expr>($/) { make $<EXPR>.ast; }
+#method simple-statement:sym<expr>($/) { make $<EXPR>.ast; }
+method simple-statement($/) {
+    make $<assignment> ?? $<assignment>.ast !! $<EXPR>.ast;
+}
+
+method assignment($/) {
+    my $var := ~$<identifier>;
+    my %sym := $*BLOCK.symbol: $var;
+
+    if !%sym<declared> {
+        $*BLOCK[0].push: QAST::Var.new(:name($var), :scope<lexical>, :decl<var>);
+    }
+
+    make QAST::Op.new(:op<bind>,
+        QAST::Var.new(:name($var), :scope<lexical>),
+        $<EXPR>.ast);
+}
 
 # 8: Compound statements
 method compound-statement:sym<if>($/) {
@@ -118,11 +135,11 @@ method file-input($/) {
     for $<line> -> $line {
         $stmts.push($line.ast) if $line.ast;
     }
+    $*BLOCK.push: $stmts;
 
     # XXX: This has been cargo-culted from Rakudo. Should probably figure out
     # how this API should be used (and what it can do).
-    make QAST::CompUnit.new(QAST::Block.new(QAST::Var.new(:name<__args__>,
-        :scope<local>, :decl<param>, :slurpy(1)), $stmts), :hll<snake>);
+    make QAST::CompUnit.new($*BLOCK, :hll<snake>);
 }
 
 method line($/) { make $<statement>.ast if $<statement>; }

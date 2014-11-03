@@ -4,6 +4,14 @@ grammar Snake::Grammar is HLL::Grammar;
 
 method TOP() {
     my @*INDENT := nqp::list_i(0);
+    # XXX: For the time being, we handle variables like NQP: Each scope is a
+    # block, which has two Stmts children. We stick variable decls in the
+    # first one, and put the actual code as the second one. Undeclared
+    # variables are compile-time errors. This has to change at some point I
+    # think, since variables can be created by other compilation units (again,
+    # I think).
+    my $*BLOCK := QAST::Block.new(QAST::Var.new(:name<__args__>,
+        :scope<local>, :decl<param>, :slurpy(1)), QAST::Stmts.new());
 
     return self.file-input;
 }
@@ -188,8 +196,16 @@ token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [<EXPR>+ % [:s ',' ]] }
 rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
 
 # 7: Simple statements
-proto token simple-statement {*}
-token simple-statement:sym<expr> { <EXPR> }
+#proto token simple-statement {*}
+#token simple-statement:sym<expr> { <EXPR> }
+# XXX: Can't use protos here (or at least, I can't make it work) since
+# expressions and assignments can't really be easily disambiguated via their
+# declarative prefixes. Therefore, we first try to parse an assignment, and if
+# that fails fall back to EXPR.
+token simple-statement { <assignment> || <EXPR> }
+
+# TODO: Handle all possible assignments.
+rule assignment { <identifier> '=' <EXPR> }
 
 # 8: Compound statements
 proto token compound-statement {*}
