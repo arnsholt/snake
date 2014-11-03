@@ -48,6 +48,14 @@ method term:sym<string>($/)  { make $<string>.ast; }
 method term:sym<integer>($/) { make QAST::IVal.new(:value($<integer>.ast)) }
 method term:sym<float>($/)   { make QAST::NVal.new(:value($<dec_number>.ast)) }
 
+method circumfix:sym<[ ]>($/) {
+    my $ast := QAST::Op.new(:op<list>);
+    for $<expression_list>.ast -> $e {
+        $ast.push: $e;
+    }
+    make $ast;
+}
+
 method term:sym<nqp::op>($/) {
     my $op := QAST::Op.new(:op(~$<op>));
     for $<EXPR> -> $e {
@@ -55,6 +63,14 @@ method term:sym<nqp::op>($/) {
     }
 
     make $op;
+}
+
+method expression_list($/) {
+    my $ast := [];
+    for $<EXPR> -> $e {
+        nqp::push($ast, $e.ast);
+    }
+    make $ast;
 }
 
 # 7: Simple statements

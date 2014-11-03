@@ -178,7 +178,9 @@ token term:sym<string>  { <string> }
 token term:sym<integer> { <integer> }
 token term:sym<float>   { <dec_number> }
 
+# TODO: Disable indent stuff inside enclosures.
 token circumfix:sym<( )> { '(' <.ws> <expression_list> ')' }
+token circumfix:sym<[ ]> { '[' ~ ']' [<.ws> <expression_list>] }
 
 token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [<EXPR>+ % [:s ',' ]] }
 
