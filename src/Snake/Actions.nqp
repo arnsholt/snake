@@ -82,12 +82,7 @@ method simple-statement($/) {
 
 method assignment($/) {
     my $var := ~$<identifier>;
-    my %sym := $*BLOCK.symbol: $var;
-
-    if !%sym<declared> {
-        $*BLOCK[0].push: QAST::Var.new(:name($var), :scope<lexical>, :decl<var>);
-    }
-
+    self.add-declaration: $var;
     make QAST::Op.new(:op<bind>,
         QAST::Var.new(:name($var), :scope<lexical>),
         $<EXPR>.ast);
@@ -105,6 +100,19 @@ method compound-statement:sym<if>($/) {
     $cur.push($<else>.ast) if $<else>;
 
     make $ast;
+}
+
+method compound-statement:sym<for>($/) {
+    my $var := ~$<identifier>;
+    self.add-declaration: $var;
+    $<suite>.ast.unshift: QAST::Op.new(:op<bind>,
+        QAST::Var.new(:name($var), :scope<lexical>),
+        QAST::Var.new(:name<$_>, :scope<lexical>));
+    make QAST::Op.new(:op<for>, $<EXPR>.ast,
+        QAST::Block.new(
+            QAST::Stmts.new(QAST::Var.new(:name<$_>, :scope<lexical>, :decl<param>)),
+            $<suite>.ast
+        ))
 }
 
 method suite:sym<runon>($/) { make $<stmt-list>.ast; }
@@ -143,5 +151,13 @@ method file-input($/) {
 }
 
 method line($/) { make $<statement>.ast if $<statement>; }
+
+# Appendix: Utility methods
+method add-declaration($var) {
+    my %sym := $*BLOCK.symbol: $var;
+    if !%sym<declared> {
+        $*BLOCK[0].push: QAST::Var.new(:name($var), :scope<lexical>, :decl<var>);
+    }
+}
 
 # vim: ft=perl6

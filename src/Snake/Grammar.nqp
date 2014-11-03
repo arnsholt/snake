@@ -216,6 +216,12 @@ rule compound-statement:sym<if> {
     [<.INDENT: $indent> 'else' ':' <else=.suite>]?
 }
 
+# TODO: Full destructuring assignment.
+# TODO: Else part of for loop.
+rule compound-statement:sym<for> {
+    <sym> <identifier> in <EXPR> ':' <suite>
+}
+
 proto token suite {*}
 token suite:sym<runon> { <stmt-list> <.NEWLINE> }
 token suite:sym<normal> {
