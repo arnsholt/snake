@@ -23,7 +23,7 @@ token NEWLINE { <.ws> [\n | $] }
 ### 2.1.9: Whitespace between tokens
 token wsc { <[\ \t\f]> }
 # TODO: Line joining with backslash
-token ws  { <!ww> <.wsc>* ['#' \N+]? || <.wsc>+ ['#' \N+]? }
+token ws  { [<!ww> <.wsc>* || <.wsc>+] ['#' \N+ | \\\n <.ws>]? }
 
 ## 2.3: Identifiers and keywords
 # TODO: xid_start/xid_continue, which is defined as anything that is
