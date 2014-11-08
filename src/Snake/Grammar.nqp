@@ -2,6 +2,8 @@ use NQPHLL;
 
 grammar Snake::Grammar is HLL::Grammar;
 
+use Snake::Actions;
+
 method TOP() {
     my @*INDENT := nqp::list_i(0);
     # XXX: For the time being, we handle variables like NQP: Each scope is a
@@ -10,8 +12,8 @@ method TOP() {
     # variables are compile-time errors. This has to change at some point I
     # think, since variables can be created by other compilation units (again,
     # I think).
-    my $*BLOCK := QAST::Block.new(QAST::Var.new(:name<__args__>,
-        :scope<local>, :decl<param>, :slurpy(1)), QAST::Stmts.new());
+    my $*BLOCK := QAST::Block.new(QAST::Stmts.new(QAST::Var.new(:name<__args__>,
+    :scope<local>, :decl<param>, :slurpy(1))));
 
     return self.file-input;
 }
@@ -219,7 +221,7 @@ rule compound-statement:sym<if> {
 # TODO: Full destructuring assignment.
 # TODO: Else part of for loop.
 rule compound-statement:sym<for> {
-    <sym> <identifier> in <EXPR> ':' <suite>
+    <sym> <identifier> {Snake::Actions.add-declaration: $<identifier>.ast.name} in <EXPR> ':' <suite>
 }
 
 proto token suite {*}

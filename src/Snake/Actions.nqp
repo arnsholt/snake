@@ -1,6 +1,17 @@
 use NQPHLL;
 
+# TODO: Proper variable handling. I think it might be relatively
+# straightforward, actually. On reference, we'll have to check if the name has
+# already been declared; if it isn't, mark it as free in the scope (free
+# variables refer to variables in outer scopes). Then declarations can throw
+# an error (or warn, in the case of nonlocal and global) if a name is declared
+# after it's already been used.
+
 class Snake::Actions is HLL::Actions;
+
+method identifier($/) {
+    make QAST::Var.new(:name(~$/), :scope<lexical>);
+}
 
 ## 2.4: Literals
 method string($/) { make $<quote_EXPR>.ast; }
@@ -44,7 +55,19 @@ method sports($/) {
 }
 
 # 6: Expressions
-method term:sym<identifier>($/) { make QAST::Var.new(:name(~$<identifier>), :scope<lexical>); }
+#method term:sym<identifier>($/) { make QAST::Var.new(:name(~$<identifier>), :scope<lexical>); }
+method term:sym<identifier>($/) {
+    my $ast := $<identifier>.ast;
+    my %symbol := $*BLOCK.symbol: $ast.name;
+    # If a variable is referenced that is not already declared in the scope,
+    # that variable is free and refers to something in an outer scope. It is
+    # an error to later declare it (that is, assign to it) or warnable to mark
+    # it global/nonlocal.
+    if !%symbol<declared> {
+        $*BLOCK.symbol($ast.name, :free(1));
+    }
+    make $ast;
+}
 method term:sym<string>($/)     { make $<string>.ast; }
 method term:sym<integer>($/)    { make QAST::IVal.new(:value($<integer>.ast)) }
 method term:sym<float>($/)      { make QAST::NVal.new(:value($<dec_number>.ast)) }
@@ -81,10 +104,10 @@ method simple-statement($/) {
 }
 
 method assignment($/) {
-    my $var := ~$<identifier>;
-    self.add-declaration: $var;
+    my $var := $<identifier>.ast;
+    self.add-declaration: $var.name;
     make QAST::Op.new(:op<bind>,
-        QAST::Var.new(:name($var), :scope<lexical>),
+        $var,
         $<EXPR>.ast);
 }
 
@@ -103,10 +126,10 @@ method compound-statement:sym<if>($/) {
 }
 
 method compound-statement:sym<for>($/) {
-    my $var := ~$<identifier>;
-    self.add-declaration: $var;
+    my $var := $<identifier>.ast;
+    self.add-declaration: $var.name;
     $<suite>.ast.unshift: QAST::Op.new(:op<bind>,
-        QAST::Var.new(:name($var), :scope<lexical>),
+        $var,
         QAST::Var.new(:name<$_>, :scope<lexical>));
     make QAST::Op.new(:op<for>, $<EXPR>.ast,
         QAST::Block.new(
@@ -156,6 +179,8 @@ method line($/) { make $<statement>.ast if $<statement>; }
 method add-declaration($var) {
     my %sym := $*BLOCK.symbol: $var;
     if !%sym<declared> {
+        nqp::die("Symbol $var referenced before being declared") if %sym<free>;
+        $*BLOCK.symbol: $var, :declared(1);
         $*BLOCK[0].push: QAST::Var.new(:name($var), :scope<lexical>, :decl<var>);
     }
 }
