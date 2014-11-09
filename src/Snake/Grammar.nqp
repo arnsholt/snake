@@ -218,6 +218,11 @@ rule compound-statement:sym<if> {
     [<.INDENT: $indent> 'else' ':' <else=.suite>]?
 }
 
+# TODO: Else part of while loop.
+rule compound-statement:sym<while> {
+    <sym> <EXPR> ':' <suite>
+}
+
 # TODO: Full destructuring assignment.
 # TODO: Else part of for loop.
 rule compound-statement:sym<for> {

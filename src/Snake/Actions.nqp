@@ -125,6 +125,10 @@ method compound-statement:sym<if>($/) {
     make $ast;
 }
 
+method compound-statement:sym<while>($/) {
+    make QAST::Op.new(:op<while>, $<EXPR>.ast, $<suite>.ast);
+}
+
 method compound-statement:sym<for>($/) {
     my $var := $<identifier>.ast;
     self.add-declaration: $var.name;
