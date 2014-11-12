@@ -211,22 +211,24 @@ rule assignment { <identifier> '=' <EXPR> }
 
 # 8: Compound statements
 proto token compound-statement {*}
-rule compound-statement:sym<if> {
+token compound-statement:sym<if> {
     :my int $indent := nqp::atpos_i(@*INDENT, 0);
-    <sym> <EXPR> ':' <suite>
-    [<.INDENT: $indent> 'elif' <elif=.EXPR> ':' <elif=.suite>]?
-    [<.INDENT: $indent> 'else' ':' <else=.suite>]?
+    [:s<sym> <EXPR> ':' <suite>]
+    [:s<.INDENT: $indent> 'elif' <elif=.EXPR> ':' <elif=.suite>]?
+    [:s<.INDENT: $indent> 'else' ':' <else=.suite>]?
 }
 
 # TODO: Else part of while loop.
-rule compound-statement:sym<while> {
-    <sym> <EXPR> ':' <suite>
+token compound-statement:sym<while> {
+    [:s<sym> <EXPR> ':' <suite>]
 }
 
 # TODO: Full destructuring assignment.
 # TODO: Else part of for loop.
-rule compound-statement:sym<for> {
-    <sym> <identifier> {Snake::Actions.add-declaration: $<identifier>.ast.name} in <EXPR> ':' <suite>
+token compound-statement:sym<for> {
+    [:s<sym> <identifier>
+    {Snake::Actions.add-declaration: $<identifier>.ast.name}
+    in <EXPR> ':' <suite>]
 }
 
 proto token suite {*}
