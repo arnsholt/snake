@@ -100,8 +100,12 @@ method expression_list($/) {
 # 7: Simple statements
 #method simple-statement:sym<expr>($/) { make $<EXPR>.ast; }
 method simple-statement($/) {
-    make $<assignment> ?? $<assignment>.ast !! $<EXPR>.ast;
+    make $<stmt>.ast;
 }
+
+method ordinary-statement:sym<EXPR>($/) { make $<EXPR>.ast; }
+method ordinary-statement:sym<break>($/) { make QAST::Op.new(:op<control>, :name<last>); }
+method ordinary-statement:sym<continue>($/) { make QAST::Op.new(:op<control>, :name<next>); }
 
 method assignment($/) {
     my $var := $<identifier>.ast;

@@ -204,10 +204,16 @@ rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
 # expressions and assignments can't really be easily disambiguated via their
 # declarative prefixes. Therefore, we first try to parse an assignment, and if
 # that fails fall back to EXPR.
-token simple-statement { <assignment> || <EXPR> }
+token simple-statement { <stmt=.assignment> || <stmt=.ordinary-statement> }
+
+proto token ordinary-statement {*}
+token ordinary-statement:sym<EXPR> { <EXPR> }
 
 # TODO: Handle all possible assignments.
 rule assignment { <identifier> '=' <EXPR> }
+
+token ordinary-statement:sym<break> { <sym> <.ws> }
+token ordinary-statement:sym<continue> { <sym> <.ws> }
 
 # 8: Compound statements
 proto token compound-statement {*}
