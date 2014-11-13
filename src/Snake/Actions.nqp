@@ -89,6 +89,16 @@ method term:sym<nqp::op>($/) {
     make $op;
 }
 
+method postcircumfix:sym<( )>($/) {
+    my $ast := QAST::Op.new(:op<call>);
+    #nqp::say(~$<expression_list>.ast);
+    #nqp::say($<expression_list>[0]);
+    for $<expression_list>.ast -> $e {
+        $ast.push: $e;
+    }
+    make $ast;
+}
+
 method expression_list($/) {
     my $ast := [];
     for $<EXPR> -> $e {
@@ -144,6 +154,40 @@ method compound-statement:sym<for>($/) {
             QAST::Stmts.new(QAST::Var.new(:name<$_>, :scope<lexical>, :decl<param>)),
             $<suite>.ast
         ))
+}
+
+method compound-statement:sym<def>($/) {
+    my $block := $<new_scope>.ast;
+    my $name := $<identifier>.ast.name;
+    $block.name: $name;
+
+    for $<parameter_list>.ast -> $p {
+        $block[0].push: $p;
+    }
+
+    my $ast := QAST::Op.new(:op<bind>,
+            QAST::Var.new(:name($name), :scope<lexical>),
+            $block);
+
+    make $ast;
+}
+
+method new_scope($/) {
+    $*BLOCK.push: $<suite>.ast;
+    make $*BLOCK;
+}
+
+method parameter_list($/) {
+    my $ast := [];
+    for $<parameter> -> $p {
+        nqp::push($ast, $p.ast);
+    }
+    make $ast;
+}
+
+method parameter($/) {
+    make QAST::Var.new(:name($<identifier>.ast.name),
+        :scope<lexical>, :decl<param>);
 }
 
 method suite:sym<runon>($/) { make $<stmt-list>.ast; }

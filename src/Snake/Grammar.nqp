@@ -4,6 +4,29 @@ grammar Snake::Grammar is HLL::Grammar;
 
 use Snake::Actions;
 
+# Operator precedence levels, from tightest to loosest.
+INIT {
+    # Precedence levels not found in the standard grammar, since we factor
+    # things a bit differently, with invocation, calls and the like (what the
+    # standard grammar calls "primaries") being operators rather than separate
+    # lexical categories.
+    Snake::Grammar.O(':prec<z> :assoc<unary>', '%dotty');
+    Snake::Grammar.O(':prec<y> :assoc<unary>', '%call');
+
+    Snake::Grammar.O(':prec<o> :assoc<right>', '%exponentiation');
+    Snake::Grammar.O(':prec<n> :assoc<unary>', '%unary');
+    Snake::Grammar.O(':prec<m> :assoc<left>',  '%multiplicative');
+    Snake::Grammar.O(':prec<l> :assoc<left>',  '%additive');
+    Snake::Grammar.O(':prec<k> :assoc<left>',  '%bitshift');
+    Snake::Grammar.O(':prec<j> :assoc<left>',  '%bitand');
+    Snake::Grammar.O(':prec<i> :assoc<left>',  '%bitxor');
+    Snake::Grammar.O(':prec<h> :assoc<left>',  '%bitor');
+    Snake::Grammar.O(':prec<g> :assoc<left>',  '%relational'); # TODO: Actually chaining operators
+    Snake::Grammar.O(':prec<f> :assoc<unary>', '%boolnot');
+    Snake::Grammar.O(':prec<e> :assoc<left>',  '%booland');
+    Snake::Grammar.O(':prec<d> :assoc<left>',  '%boolor');
+}
+
 method TOP() {
     my @*INDENT := nqp::list_i(0);
     # XXX: For the time being, we handle variables like NQP: Each scope is a
@@ -194,6 +217,9 @@ token circumfix:sym<[ ]> { '[' ~ ']' [<.ws> <expression_list>] }
 
 token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [<EXPR>+ % [:s ',' ]] }
 
+## 6.3: Primaries
+token postcircumfix:sym<( )> { '(' ~ ')' [<.ws> <expression_list>?] <O('%call')> }
+
 ## 6.13: Expression lists
 rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
 
@@ -236,6 +262,26 @@ token compound-statement:sym<for> {
     {Snake::Actions.add-declaration: $<identifier>.ast.name}
     in <EXPR> ':' <suite>]
 }
+
+# TODO: Decorators
+# TODO: Return annotation
+token compound-statement:sym<def> {
+    [:s<sym> <identifier>
+    {Snake::Actions.add-declaration: $<identifier>.ast.name}
+    '(' ~ ')' <parameter_list> ':'
+    <new_scope>]
+}
+
+token new_scope {
+    :my $*BLOCK := QAST::Block.new(QAST::Stmts.new());
+    <suite>
+}
+
+rule parameter_list { <parameter>+ % [ ',' ]$<trailing>=[ ',' ]? }
+
+# TODO: Parameter annotations
+# TODO: Default values
+token parameter { <identifier> }
 
 proto token suite {*}
 token suite:sym<runon> { <stmt-list> <.NEWLINE> }
