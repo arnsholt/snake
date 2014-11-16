@@ -91,10 +91,10 @@ method term:sym<nqp::op>($/) {
 
 method postcircumfix:sym<( )>($/) {
     my $ast := QAST::Op.new(:op<call>);
-    #nqp::say(~$<expression_list>.ast);
-    #nqp::say($<expression_list>[0]);
-    for $<expression_list>.ast -> $e {
-        $ast.push: $e;
+    if $<expression_list> {
+        for $<expression_list>.ast -> $e {
+            $ast.push: $e;
+        }
     }
     make $ast;
 }
@@ -161,13 +161,23 @@ method compound-statement:sym<def>($/) {
     my $name := $<identifier>.ast.name;
     $block.name: $name;
 
-    for $<parameter_list>.ast -> $p {
-        $block[0].push: $p;
-    }
-
-    my $ast := QAST::Op.new(:op<bind>,
+    my $ast := QAST::Stmts.new(QAST::Op.new(:op<bind>,
             QAST::Var.new(:name($name), :scope<lexical>),
-            $block);
+            $block));
+
+    for $<parameter_list>.ast -> $p {
+        $block[0].push: $p.ast;
+        if $p<EXPR> {
+            my $default-name := '$default' ~ $*DEFAULTS++;
+            my $var := QAST::Var.new(:name($default-name), :scope<lexical>);
+            $*BLOCK[0].push: QAST::Var.new(:name($default-name),
+                :scope<lexical>, :decl<var>);
+            $p.ast.default($var);
+            $ast.push: QAST::Op.new(:op<bind>,
+                $var,
+                $p<EXPR>.ast);
+        }
+    }
 
     make $ast;
 }
@@ -180,7 +190,7 @@ method new_scope($/) {
 method parameter_list($/) {
     my $ast := [];
     for $<parameter> -> $p {
-        nqp::push($ast, $p.ast);
+        nqp::push($ast, $p);
     }
     make $ast;
 }

@@ -37,6 +37,11 @@ method TOP() {
     # I think).
     my $*BLOCK := QAST::Block.new(QAST::Stmts.new(QAST::Var.new(:name<__args__>,
     :scope<local>, :decl<param>, :slurpy(1))));
+    # Default variables are assigned to block-scoped lexicals numbered
+    # sequentially. Naming derived from function definition and parameter name
+    # won't work if a block contains two defs for the same function with the
+    # same parameter names and different defaults (in an if, say).
+    my $*DEFAULTS := 0;
 
     return self.file-input;
 }
@@ -117,10 +122,11 @@ token string {
 # TODO
 
 ## 2.5: Operators
-# TODO: Precedence levels
-token prefix:sym<~> { <sym> }
-token prefix:sym<+> { <sym> }
-token prefix:sym<-> { <sym> }
+# TODO: I think the default NQP arithmetic ops have slightly wrong semantics
+# for Python.
+token prefix:sym<~> { <sym> <O('%unary, :op<bitneg_i>')> }
+token prefix:sym<+> { <sym> <O('%unary')> }
+token prefix:sym<-> { <sym> <O('%unary, :op<neg_n>')> }
 
 token infix:sym<+>  { <sym> }
 token infix:sym<->  { <sym> }
@@ -280,8 +286,7 @@ token new_scope {
 rule parameter_list { <parameter>+ % [ ',' ]$<trailing>=[ ',' ]? }
 
 # TODO: Parameter annotations
-# TODO: Default values
-token parameter { <identifier> }
+token parameter { [:s<identifier> ['=' <EXPR>]?] }
 
 proto token suite {*}
 token suite:sym<runon> { <stmt-list> <.NEWLINE> }
