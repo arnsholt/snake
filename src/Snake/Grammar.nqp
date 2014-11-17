@@ -271,6 +271,10 @@ token compound-statement:sym<for> {
 
 # TODO: Decorators
 # TODO: Return annotation
+# TODO: Docstrings. The best way to extract and install this is probably a
+# helper method that looks at the QAST::Block created by new_scope and removes
+# an initial QAST::SVal and uses that to set the __doc__ member of the
+# function object.
 token compound-statement:sym<def> {
     [:s<sym> <identifier>
     {Snake::Actions.add-declaration: $<identifier>.ast.name}
