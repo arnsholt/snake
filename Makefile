@@ -5,6 +5,7 @@ MOAR=$(PREFIX)/bin/moar
 MOARS=blib/Snake/Actions.moarvm \
          blib/Snake/Compiler.moarvm \
          blib/Snake/Grammar.moarvm \
+		 blib/Snake/Metamodel/ClassHOW.moarvm \
          blib/snake.moarvm
 
 .PHONY: all
@@ -13,6 +14,9 @@ all: $(MOARS)
 
 blib/%.moarvm: src/%.nqp
 	$(NQP) --target=mbc --output=$@ $<
+
+blib/Snake/Actions.moarvm: src/Snake/Actions.nqp blib/Snake/Metamodel/ClassHOW.moarvm \
+	blib/Snake/Metamodel/InstanceHOW.moarvm
 
 test: all
 	prove -r --exec ./snake t/sanity/*.t

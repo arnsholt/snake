@@ -43,6 +43,8 @@ method TOP() {
     # same parameter names and different defaults (in an if, say).
     my $*DEFAULTS := 0;
 
+    my $*IN_CLASS := 0;
+
     return self.file-input;
 }
 
@@ -279,6 +281,17 @@ token compound-statement:sym<def> {
     [:s<sym> <identifier>
     {Snake::Actions.add-declaration: $<identifier>.ast.name}
     '(' ~ ')' <parameter_list> ':'
+    <new_scope>]
+}
+
+# TODO: Inheritance
+# TODO: Decorators
+token compound-statement:sym<class> {
+    [:s<sym> <identifier>
+    {Snake::Actions.add-declaration: $<identifier>.ast.name}
+    ':'
+    :my $*IN_CLASS := 1;
+    :my @*METHODS := nqp::list_s();
     <new_scope>]
 }
 

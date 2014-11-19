@@ -1,5 +1,8 @@
 use NQPHLL;
 
+use Snake::Metamodel::ClassHOW;
+use Snake::Metamodel::InstanceHOW;
+
 # TODO: Proper variable handling. I think it might be relatively
 # straightforward, actually. On reference, we'll have to check if the name has
 # already been declared; if it isn't, mark it as free in the scope (free
@@ -157,6 +160,7 @@ method compound-statement:sym<for>($/) {
 }
 
 method compound-statement:sym<def>($/) {
+    # TODO: Check for $*IN_CLASS and push_s name to @*METHODS if true.
     my $block := $<new_scope>.ast;
     my $name := $<identifier>.ast.name;
     $block.name: $name;
@@ -180,6 +184,28 @@ method compound-statement:sym<def>($/) {
     }
 
     make $ast;
+}
+
+method compound-statement:sym<class>($/) {
+    my $name := $<identifier>.ast.name;
+    my $block := $<new_scope>.ast;
+
+    $block[0].unshift: QAST::Var.new(:name<$_>, :scope<lexical>, :decl<param>);
+    $block[1].push: QAST::Var.new(:name<$_>, :scope<lexical>);
+    $block := QAST::Op.new(:op<call>,
+        $block,
+        QAST::Op.new(:op<callmethod>, :name<new_type>,
+            QAST::WVal.new(:value(Snake::Metamodel::ClassHOW)),
+            QAST::SVal.new(:value($name), :named<name>),
+            QAST::Op.new(:op<callmethod>, :name<new_type>, :named<instance-type>,
+                QAST::WVal.new(:value(Snake::Metamodel::InstanceHOW))),
+        ),
+    );
+
+    make QAST::Op.new(:op<bind>,
+        QAST::Var.new(:name($name), :scope<lexical>),
+        $block
+    );
 }
 
 method new_scope($/) {
