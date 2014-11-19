@@ -1,2 +1,3 @@
 blib/*.moarvm
 blib/Snake/*.moarvm
+pynie/
