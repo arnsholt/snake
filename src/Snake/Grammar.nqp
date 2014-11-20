@@ -242,6 +242,7 @@ token simple-statement { <stmt=.assignment> || <stmt=.ordinary-statement> }
 
 proto token ordinary-statement {*}
 token ordinary-statement:sym<EXPR> { <EXPR> }
+token ordinary-statement:sym<pass> { <sym> }
 
 # TODO: Handle all possible assignments.
 rule assignment { <identifier> '=' <EXPR> }

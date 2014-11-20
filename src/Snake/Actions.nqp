@@ -117,6 +117,7 @@ method simple-statement($/) {
 }
 
 method ordinary-statement:sym<EXPR>($/) { make $<EXPR>.ast; }
+method ordinary-statement:sym<pass>($/) { make QAST::Stmts.new(); }
 method ordinary-statement:sym<break>($/) { make QAST::Op.new(:op<control>, :name<last>); }
 method ordinary-statement:sym<continue>($/) { make QAST::Op.new(:op<control>, :name<next>); }
 
