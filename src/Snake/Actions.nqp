@@ -118,6 +118,13 @@ method simple-statement($/) {
 
 method ordinary-statement:sym<EXPR>($/) { make $<EXPR>.ast; }
 method ordinary-statement:sym<pass>($/) { make QAST::Stmts.new(); }
+
+method ordinary-statement:sym<return>($/) {
+    # TODO: Bare return should return None.
+    make QAST::Op.new(:op<call>, :name<$RETURN>,
+        $<EXPR> ?? $<EXPR>.ast !! QAST::Stmts.new());
+}
+
 method ordinary-statement:sym<break>($/) { make QAST::Op.new(:op<control>, :name<last>); }
 method ordinary-statement:sym<continue>($/) { make QAST::Op.new(:op<control>, :name<next>); }
 
@@ -160,11 +167,18 @@ method compound-statement:sym<for>($/) {
         ))
 }
 
+# TODO: A function without an explicit return should return None in Python. We
+# currently have the same semantics as Perl (and others), returning the value
+# of the last statement in the block.
 method compound-statement:sym<def>($/) {
     # TODO: Check for $*IN_CLASS and push_s name to @*METHODS if true.
     my $block := $<new_scope>.ast;
     my $name := $<identifier>.ast.name;
     $block.name: $name;
+
+    if $*HAS_RETURN {
+        $block[1] := QAST::Op.new(:op<lexotic>, :name<$RETURN>, $block[1]);
+    }
 
     my $ast := QAST::Stmts.new(QAST::Op.new(:op<bind>,
             QAST::Var.new(:name($name), :scope<lexical>),

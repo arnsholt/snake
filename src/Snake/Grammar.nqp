@@ -44,6 +44,7 @@ method TOP() {
     my $*DEFAULTS := 0;
 
     my $*IN_CLASS := 0;
+    my $*IN_DEF := 0;
 
     return self.file-input;
 }
@@ -243,6 +244,11 @@ token simple-statement { <stmt=.assignment> || <stmt=.ordinary-statement> }
 proto token ordinary-statement {*}
 token ordinary-statement:sym<EXPR> { <EXPR> }
 token ordinary-statement:sym<pass> { <sym> }
+# TODO: Return actually takes a list of expressions, not a single one.
+token ordinary-statement:sym<return> {
+    <sym> <.ws> <EXPR>?
+    [ <?{ $*IN_DEF == 1 }> {$*HAS_RETURN := 1} || <.panic: "Can only return when inside a function."> ]
+}
 
 # TODO: Handle all possible assignments.
 rule assignment { <identifier> '=' <EXPR> }
@@ -282,6 +288,8 @@ token compound-statement:sym<def> {
     [:s<sym> <identifier>
     {Snake::Actions.add-declaration: $<identifier>.ast.name}
     '(' ~ ')' <parameter_list> ':'
+    :my $*IN_DEF := 1;
+    :my $*HAS_RETURN := 0;
     <new_scope>]
 }
 
@@ -292,6 +300,7 @@ token compound-statement:sym<class> {
     {Snake::Actions.add-declaration: $<identifier>.ast.name}
     ':'
     :my $*IN_CLASS := 1;
+    :my $*IN_DEF := 0;
     :my @*METHODS := nqp::list_s();
     <new_scope>]
 }
