@@ -11,7 +11,8 @@ INIT {
     # standard grammar calls "primaries") being operators rather than separate
     # lexical categories.
     Snake::Grammar.O(':prec<z> :assoc<unary>', '%dotty');
-    Snake::Grammar.O(':prec<y> :assoc<unary>', '%call');
+    Snake::Grammar.O(':prec<y> :assoc<unary>', '%subscript');
+    Snake::Grammar.O(':prec<x> :assoc<unary>', '%call');
 
     Snake::Grammar.O(':prec<o> :assoc<right>', '%exponentiation');
     Snake::Grammar.O(':prec<n> :assoc<unary>', '%unary');
@@ -227,6 +228,7 @@ token circumfix:sym<[ ]> { '[' ~ ']' [<.ws> <expression_list>] }
 token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [<EXPR>+ % [:s ',' ]] }
 
 ## 6.3: Primaries
+token postfix:sym<attribute> { '.' <identifier> <O('%dotty')> }
 token postcircumfix:sym<( )> { '(' ~ ')' [<.ws> <expression_list>?] <O('%call')> }
 
 ## 6.13: Expression lists
@@ -251,7 +253,7 @@ token ordinary-statement:sym<return> {
 }
 
 # TODO: Handle all possible assignments.
-rule assignment { <identifier> '=' <EXPR> }
+rule assignment { <lhs=.EXPR('x')> '=' <rhs=.EXPR> }
 
 token ordinary-statement:sym<break> { <sym> <.ws> }
 token ordinary-statement:sym<continue> { <sym> <.ws> }

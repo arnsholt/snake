@@ -1,7 +1,6 @@
 use NQPHLL;
 
 use Snake::Metamodel::ClassHOW;
-use Snake::Metamodel::InstanceHOW;
 
 # TODO: Proper variable handling. I think it might be relatively
 # straightforward, actually. On reference, we'll have to check if the name has
@@ -61,14 +60,14 @@ method sports($/) {
 #method term:sym<identifier>($/) { make QAST::Var.new(:name(~$<identifier>), :scope<lexical>); }
 method term:sym<identifier>($/) {
     my $ast := $<identifier>.ast;
-    my %symbol := $*BLOCK.symbol: $ast.name;
-    # If a variable is referenced that is not already declared in the scope,
-    # that variable is free and refers to something in an outer scope. It is
-    # an error to later declare it (that is, assign to it) or warnable to mark
-    # it global/nonlocal.
-    if !%symbol<declared> {
-        $*BLOCK.symbol($ast.name, :free(1));
-    }
+    #my %symbol := $*BLOCK.symbol: $ast.name;
+    ## If a variable is referenced that is not already declared in the scope,
+    ## that variable is free and refers to something in an outer scope. It is
+    ## an error to later declare it (that is, assign to it) or warnable to mark
+    ## it global/nonlocal.
+    #if !%symbol<declared> {
+    #    $*BLOCK.symbol($ast.name, :free(1));
+    #}
     make $ast;
 }
 method term:sym<string>($/)     { make $<string>.ast; }
@@ -90,6 +89,41 @@ method term:sym<nqp::op>($/) {
     }
 
     make $op;
+}
+
+method make-attribute($/) {
+    make QAST::Block.new(:blocktype<immediate>,
+        QAST::Var.new(:name<$_>, :scope<local>, :decl<var>),
+        QAST::Op.new(:op<bind>,
+            QAST::Var.new(:name<$_>, :scope<local>),
+            $/[0].ast
+        ),
+        QAST::Op.new(:op<if>,
+            QAST::Op.new(:op<isconcrete>,
+                QAST::Var.new(:name<$_>, :scope<local>),
+            ),
+            QAST::Stmts.new(
+                # nqp::getattr($_, $_.WHAT, $<OPER><identifier>.name) //
+                #     $_.HOW.find_attribute($_, $<OPER><identifier>.name)
+                QAST::Op.new(:op<ifnull>,
+                    QAST::Op.new(:op<getattr>,
+                        QAST::Var.new(:name<$_>, :scope<local>),
+                        QAST::Op.new(:op<what>, QAST::Var.new(:name<$_>, :scope<local>)),
+                        QAST::SVal.new(:value($<OPER><identifier>.ast.name)),
+                    ),
+                    QAST::Op.new(:op<callmethod>, :name<find_attribute>,
+                        QAST::Op.new(:op<how>, QAST::Var.new(:name<$_>, :scope<local>)),
+                        QAST::Var.new(:name<$_>, :scope<local>),
+                        QAST::SVal.new(:value($<OPER><identifier>.ast.name)),
+                    ),
+                ),
+            ),
+            QAST::Stmts.new(
+                QAST::Op.new(:op<die>,
+                    QAST::SVal.new(:value("Type object attribute lookup NYI")))
+            ),
+        ),
+    );
 }
 
 method postcircumfix:sym<( )>($/) {
@@ -129,11 +163,31 @@ method ordinary-statement:sym<break>($/) { make QAST::Op.new(:op<control>, :name
 method ordinary-statement:sym<continue>($/) { make QAST::Op.new(:op<control>, :name<next>); }
 
 method assignment($/) {
-    my $var := $<identifier>.ast;
-    self.add-declaration: $var.name;
-    make QAST::Op.new(:op<bind>,
-        $var,
-        $<EXPR>.ast);
+    if $<lhs><identifier> {
+        my $var := $<lhs><identifier>.ast;
+        self.add-declaration: $var.name;
+        make QAST::Op.new(:op<bind>,
+            $var,
+            $<rhs>.ast);
+    }
+    elsif $<lhs><postfix> {
+        make QAST::Block.new(:blocktype<immediate>,
+            QAST::Var.new(:name<$_>, :scope<local>, :decl<var>),
+            QAST::Op.new(:op<bind>,
+                QAST::Var.new(:name<$_>, :scope<local>),
+                $<lhs>[0].ast
+            ),
+            QAST::Op.new(:op<callmethod>, :name<bind_attribute>,
+                QAST::Op.new(:op<how>, QAST::Var.new(:name<$_>, :scope<local>)),
+                QAST::Var.new(:name<$_>, :scope<local>),
+                QAST::SVal.new(:value($<lhs><postfix><identifier>.ast.name)),
+                $<rhs>.ast,
+            ),
+        );
+    }
+    elsif $<lhs><postcircumfix> {
+        # TODO
+    }
 }
 
 # 8: Compound statements
@@ -204,18 +258,17 @@ method compound-statement:sym<def>($/) {
 method compound-statement:sym<class>($/) {
     my $name := $<identifier>.ast.name;
     my $block := $<new_scope>.ast;
+    $block.blocktype: 'immediate';
 
-    $block[0].unshift: QAST::Var.new(:name<$_>, :scope<lexical>, :decl<param>);
-    $block[1].push: QAST::Var.new(:name<$_>, :scope<lexical>);
-    $block := QAST::Op.new(:op<call>,
-        $block,
+    $block[0].push: QAST::Var.new(:name<$class>, :scope<local>, :decl<var>);
+    $block[1].unshift: QAST::Op.new(:op<bind>,
+        QAST::Var.new(:name<$class>, :scope<local>),
         QAST::Op.new(:op<callmethod>, :name<new_type>,
             QAST::WVal.new(:value(Snake::Metamodel::ClassHOW)),
             QAST::SVal.new(:value($name), :named<name>),
-            QAST::Op.new(:op<callmethod>, :name<new_type>, :named<instance-type>,
-                QAST::WVal.new(:value(Snake::Metamodel::InstanceHOW))),
         ),
     );
+    $block[1].push: QAST::Var.new(:name<$class>, :scope<local>);
 
     make QAST::Op.new(:op<bind>,
         QAST::Var.new(:name($name), :scope<lexical>),
@@ -285,6 +338,18 @@ method add-declaration($var) {
         nqp::die("Symbol $var referenced before being declared") if %sym<free>;
         $*BLOCK.symbol: $var, :declared(1);
         $*BLOCK[0].push: QAST::Var.new(:name($var), :scope<lexical>, :decl<var>);
+    }
+}
+
+# We need custom handling for the attribute lookups. Syntactically, it makes
+# sense to handle it as a postfix (like NQP and Rakudo), but the code we
+# generate for it has to be different.
+method EXPR($/, $key?) {
+    if $key && $key eq "POSTFIX" && $<OPER><O><prec> eq 'z' {
+        self.make-attribute($/);
+    }
+    else {
+        HLL::Actions.EXPR($/, $key);
     }
 }
 

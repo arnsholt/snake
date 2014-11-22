@@ -15,8 +15,7 @@ all: $(MOARS)
 blib/%.moarvm: src/%.nqp
 	$(NQP) --target=mbc --output=$@ $<
 
-blib/Snake/Actions.moarvm: src/Snake/Actions.nqp blib/Snake/Metamodel/ClassHOW.moarvm \
-	blib/Snake/Metamodel/InstanceHOW.moarvm
+blib/Snake/Actions.moarvm: src/Snake/Actions.nqp blib/Snake/Metamodel/ClassHOW.moarvm
 
 test: all
 	prove -r --exec ./snake t/sanity/*.t
