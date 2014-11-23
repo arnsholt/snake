@@ -2,6 +2,7 @@ class Snake::Metamodel::ClassHOW;
 
 has $!name;
 has @!parents;
+has %!class-attributes;
 
 sub invocation($invocant, *@args) {
     if !nqp::isconcrete($invocant) {
@@ -20,7 +21,17 @@ method new_type(:$name, :@parents) {
 }
 
 method find_attribute($instance, str $attribute) {
-    nqp::die("ClassHOW.find_attribute NYI");
+    if nqp::existskey(%!class-attributes, $attribute) {
+        %!class-attributes{$attribute};
+        # TODO: If it's a callable, wrap it in the appropriate lambda,
+        # depending on what kind of callable it is (staticmethod, classmethod,
+        # ordinary function).
+    }
+    else {
+        # TODO: Walk inheritance hierarchy (in C3 order) to find attribute in
+        # a superclass.
+        nqp::die("No attribute $attribute in class $!name");
+    }
 }
 
 method bind_attribute($instance, str $attribute, $value) {
@@ -28,7 +39,7 @@ method bind_attribute($instance, str $attribute, $value) {
         nqp::bindattr($instance, nqp::what($instance), $attribute, $value);
     }
     else {
-        nqp::die("bind_attribute on class objects NYI");
+        %!class-attributes{$attribute} := $value;
     }
 }
 
