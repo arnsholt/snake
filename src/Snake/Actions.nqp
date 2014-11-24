@@ -225,7 +225,6 @@ method compound-statement:sym<for>($/) {
 # currently have the same semantics as Perl (and others), returning the value
 # of the last statement in the block.
 method compound-statement:sym<def>($/) {
-    # TODO: Check for $*IN_CLASS and push_s name to @*METHODS if true.
     my $block := $<new_scope>.ast;
     my $name := $<identifier>.ast.name;
     $block.name: $name;
@@ -250,6 +249,18 @@ method compound-statement:sym<def>($/) {
                 $var,
                 $p<EXPR>.ast);
         }
+    }
+
+    if $*IN_CLASS {
+        $ast := QAST::Stmts.new(
+            $ast,
+            QAST::Op.new(:op<callmethod>, :name<bind_attribute>,
+                QAST::Op.new(:op<how>, QAST::Var.new(:name<$class>, :scope<local>)),
+                QAST::Var.new(:name<$class>, :scope<local>),
+                QAST::SVal.new(:value($name)),
+                QAST::Var.new(:name($name), :scope<lexical>),
+            ),
+        );
     }
 
     make $ast;

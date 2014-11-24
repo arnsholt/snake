@@ -21,6 +21,9 @@ method new_type(:$name, :@parents) {
 }
 
 method find_attribute($instance, str $attribute) {
+    # TODO: If the attribute is a user-defined callable (and not a
+    # staticmethod or classmethod), wrap it in a lambda carrying around the
+    # invocant.
     if nqp::existskey(%!class-attributes, $attribute) {
         %!class-attributes{$attribute};
         # TODO: If it's a callable, wrap it in the appropriate lambda,

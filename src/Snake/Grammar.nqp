@@ -303,7 +303,6 @@ token compound-statement:sym<class> {
     ':'
     :my $*IN_CLASS := 1;
     :my $*IN_DEF := 0;
-    :my @*METHODS := nqp::list_s();
     <new_scope>]
 }
 
