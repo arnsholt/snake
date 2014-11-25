@@ -119,8 +119,11 @@ method make-attribute($/) {
                 ),
             ),
             QAST::Stmts.new(
-                QAST::Op.new(:op<die>,
-                    QAST::SVal.new(:value("Type object attribute lookup NYI")))
+                QAST::Op.new(:op<callmethod>, :name<find_attribute>,
+                    QAST::Op.new(:op<how>, QAST::Var.new(:name<$_>, :scope<local>)),
+                    QAST::Var.new(:name<$_>, :scope<local>),
+                    QAST::SVal.new(:value($<OPER><identifier>.ast.name)),
+                ),
             ),
         ),
     );
