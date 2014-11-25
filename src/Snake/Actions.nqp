@@ -255,14 +255,11 @@ method compound-statement:sym<def>($/) {
     }
 
     if $*IN_CLASS {
-        $ast := QAST::Stmts.new(
-            $ast,
-            QAST::Op.new(:op<callmethod>, :name<bind_attribute>,
-                QAST::Op.new(:op<how>, QAST::Var.new(:name<$class>, :scope<local>)),
-                QAST::Var.new(:name<$class>, :scope<local>),
-                QAST::SVal.new(:value($name)),
-                QAST::Var.new(:name($name), :scope<lexical>),
-            ),
+        $ast.push: QAST::Op.new(:op<callmethod>, :name<bind_attribute>,
+            QAST::Op.new(:op<how>, QAST::Var.new(:name<$class>, :scope<local>)),
+            QAST::Var.new(:name<$class>, :scope<local>),
+            QAST::SVal.new(:value($name)),
+            QAST::Var.new(:name($name), :scope<lexical>),
         );
     }
 
@@ -322,12 +319,14 @@ method suite:sym<normal>($/) {
 method statement($/) { make $<stmt>.ast; }
 
 method stmt-list($/) {
-    my $stmts := QAST::Stmts.new();
-    for $<simple-statement> -> $stmt {
-        $stmts.push($stmt.ast);
+    if +$<simple-statement> > 1 {
+        my $stmts := QAST::Stmts.new();
+        for $<simple-statement> -> $stmt {
+            $stmts.push($stmt.ast);
+        }
+        make $stmts;
     }
-
-    make $stmts;
+    else { make $<simple-statement>[0].ast; }
 }
 
 # 9: Top-level components
