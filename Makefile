@@ -18,7 +18,7 @@ blib/%.moarvm: src/%.nqp
 blib/Snake/Actions.moarvm: src/Snake/Actions.nqp blib/Snake/Metamodel/ClassHOW.moarvm
 
 test: all
-	prove -r --exec ./snake t/sanity/*.t
+	prove -r --exec ./snake t/sanity/*.t t/*.t
 
 clean:
 	-rm $(MOARS)

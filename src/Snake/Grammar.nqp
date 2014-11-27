@@ -311,7 +311,7 @@ token new_scope {
     <suite>
 }
 
-rule parameter_list { <parameter>+ % [ ',' ]$<trailing>=[ ',' ]? }
+rule parameter_list { <parameter>* % [ ',' ]$<trailing>=[ ',' ]? }
 
 # TODO: Parameter annotations
 token parameter { [:s<identifier> ['=' <EXPR>]?] }
