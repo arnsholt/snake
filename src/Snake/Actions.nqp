@@ -74,6 +74,15 @@ method term:sym<string>($/)     { make $<string>.ast; }
 method term:sym<integer>($/)    { make QAST::IVal.new(:value($<integer>.ast)) }
 method term:sym<float>($/)      { make QAST::NVal.new(:value($<dec_number>.ast)) }
 
+method circumfix:sym<( )>($/) {
+    if +$<expression_list>.ast > 1 || $<expression_list><trailing> {
+        nqp::die("Tuples NYI");
+    }
+    else {
+        make $<expression_list>.ast[0]
+    }
+}
+
 method circumfix:sym<[ ]>($/) {
     my $ast := QAST::Op.new(:op<list>);
     for $<expression_list>.ast -> $e {

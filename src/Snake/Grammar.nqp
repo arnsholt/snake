@@ -246,7 +246,7 @@ token postfix:sym<attribute> { '.' <identifier> <O('%dotty')> }
 token postcircumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>?] <O('%call')> }
 
 ## 6.13: Expression lists
-rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
+rule expression_list { <EXPR>+ % [ ',' ][$<trailing>=[ ',' ]]? }
 
 # 7: Simple statements
 #proto token simple-statement {*}
