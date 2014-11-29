@@ -9,6 +9,9 @@ $comp.language('snake');
 $comp.parsegrammar(Snake::Grammar);
 $comp.parseactions(Snake::Actions);
 
+my @options := $comp.commandline_options();
+@options.push: 'setting=s';
+
 sub MAIN(@args) {
     $comp.command_line(@args, :encoding<utf8>);
 }

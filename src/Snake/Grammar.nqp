@@ -3,6 +3,8 @@ use NQPHLL;
 grammar Snake::Grammar is HLL::Grammar;
 
 use Snake::Actions;
+use Snake::ModuleLoader;
+use Snake::World;
 
 # Operator precedence levels, from tightest to loosest.
 INIT {
@@ -38,6 +40,14 @@ method TOP() {
     # I think).
     my $*BLOCK := QAST::Block.new(QAST::Stmts.new(QAST::Var.new(:name<__args__>,
     :scope<local>, :decl<param>, :slurpy(1))));
+    my $*UNIT := $*BLOCK;
+    my $file := nqp::getlexdyn('$?FILES');
+    my $source_id := nqp::sha1(self.target()) ~
+        (%*COMPILING<%?OPTIONS><stable-sc> ?? '' !! '-' ~ ~nqp::time_n());
+    my $*W := nqp::isnull($file) ??
+        Snake::World.new(:handle($source_id)) !!
+        Snake::World.new(:handle($source_id), :description($file));
+
     # Default variables are assigned to block-scoped lexicals numbered
     # sequentially. Naming derived from function definition and parameter name
     # won't work if a block contains two defs for the same function with the
@@ -325,7 +335,14 @@ token suite:sym<normal> {
     <.DEDENT>
 }
 
-token statement { $<stmt>=<stmt-list> <.NEWLINE> | $<stmt>=<compound-statement> }
+token statement {
+    | <stmt=.stmt-list> <.NEWLINE>
+    | <stmt=.compound-statement>
+    | 'YOU_ARE_HERE' <.NEWLINE> <stmt=.you_are_here>
+}
+
+# Just a placeholder so the action gets called.
+token you_are_here { <?> }
 
 token stmt-list { <simple-statement>+ %% [<.ws> ';' <.ws>] }
 

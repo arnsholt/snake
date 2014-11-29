@@ -318,6 +318,8 @@ method suite:sym<normal>($/) {
 
 method statement($/) { make $<stmt>.ast; }
 
+method you_are_here($/) { make self.CTXSAVE() }
+
 method stmt-list($/) {
     if +$<simple-statement> > 1 {
         my $stmts := QAST::Stmts.new();
@@ -337,9 +339,29 @@ method file-input($/) {
     }
     $*BLOCK.push: $stmts;
 
+    unless nqp::defined(%*COMPILING<%?OPTIONS><outer_ctx>) {
+        # We haven't got a specified outer context already, so load a
+        # setting.
+        my $SETTING := $*W.load_setting(%*COMPILING<%?OPTIONS><setting> // 'SNAKE');
+    }
+    self.SET_BLOCK_OUTER_CTX($*BLOCK);
+
     # XXX: This has been cargo-culted from Rakudo. Should probably figure out
     # how this API should be used (and what it can do).
-    make QAST::CompUnit.new($*BLOCK, :hll<snake>);
+    make QAST::CompUnit.new(
+        :hll<snake>,
+
+        :sc($*W.sc()),
+        :pre_deserialize($*W.load_dependency_tasks()),
+        :post_deserialize($*W.fixup_tasks()),
+
+        # TODO: These need to be different when we do modules and such
+        # properly.
+        :load(QAST::Op.new(:op<call>, QAST::BVal.new(:value($*BLOCK)))),
+        :main(QAST::Op.new(:op<call>, QAST::BVal.new(:value($*BLOCK)))),
+
+        $*BLOCK,
+    );
 }
 
 method line($/) { make $<statement>.ast if $<statement>; }

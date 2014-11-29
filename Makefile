@@ -5,17 +5,23 @@ MOAR=$(PREFIX)/bin/moar
 MOARS=blib/Snake/Actions.moarvm \
          blib/Snake/Compiler.moarvm \
          blib/Snake/Grammar.moarvm \
-		 blib/Snake/Metamodel/ClassHOW.moarvm \
+         blib/Snake/ModuleLoader.moarvm \
+         blib/Snake/World.moarvm \
+         blib/Snake/Metamodel/ClassHOW.moarvm \
          blib/snake.moarvm
 
 .PHONY: all
 
-all: $(MOARS)
+all: $(MOARS) blib/SNAKE.setting.moarvm
 
 blib/%.moarvm: src/%.nqp
 	$(NQP) --target=mbc --output=$@ $<
 
+blib/SNAKE.setting.moarvm: src/setting/builtins.py $(MOARS)
+	./snake --setting=NULL --target=mbc --output=$@ $<
+
 blib/Snake/Actions.moarvm: src/Snake/Actions.nqp blib/Snake/Metamodel/ClassHOW.moarvm
+blib/Snake/Grammar.moarvm: src/Snake/Grammar.nqp blib/Snake/ModuleLoader.moarvm blib/Snake/World.moarvm
 
 test: all
 	prove -r --exec ./snake t/sanity/*.t t/*.t
