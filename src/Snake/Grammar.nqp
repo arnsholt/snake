@@ -56,6 +56,7 @@ method TOP() {
 
     my $*IN_CLASS := 0;
     my $*IN_DEF := 0;
+    my $*WS_NL := 0;
 
     return self.file-input;
 }
@@ -65,9 +66,12 @@ method TOP() {
 token NEWLINE { <.ws> [\n | $] }
 
 ### 2.1.9: Whitespace between tokens
-token wsc { <[\ \t\f]> }
+token wsc    { <[\ \t\f]> }
+token wsc-nl { <[\ \t\f\n]> }
 # TODO: Line joining with backslash
-token ws  { [<!ww> <.wsc>* || <.wsc>+] ['#' \N+ | \\\n <.ws>]? }
+token ws-nonl  { [<!ww> <.wsc>*    || <.wsc>+]    ['#' \N+ | \\\n <.ws>]? }
+token ws-nl    { [<!ww> <.wsc-nl>* || <.wsc-nl>+] ['#' \N+ | \\\n <.ws>]? }
+method ws() { $*WS_NL ?? self.ws-nl !! self.ws-nonl }
 
 ## 2.3: Identifiers and keywords
 # TODO: xid_start/xid_continue, which is defined as anything that is
@@ -232,14 +236,14 @@ token term:sym<integer> { <integer> }
 token term:sym<float>   { <dec_number> }
 
 # TODO: Disable indent stuff inside enclosures.
-token circumfix:sym<( )> { '(' <.ws> <expression_list> ')' }
-token circumfix:sym<[ ]> { '[' ~ ']' [<.ws> <expression_list>] }
+token circumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>] }
+token circumfix:sym<[ ]> { '[' ~ ']' [:my $*WS_NL := 1; <.ws> <expression_list>] }
 
-token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [<EXPR>+ % [:s ',' ]] }
+token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [:my $*WS_NL := 1; <EXPR>+ % [:s ',' ]] }
 
 ## 6.3: Primaries
 token postfix:sym<attribute> { '.' <identifier> <O('%dotty')> }
-token postcircumfix:sym<( )> { '(' ~ ')' [<.ws> <expression_list>?] <O('%call')> }
+token postcircumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>?] <O('%call')> }
 
 ## 6.13: Expression lists
 rule expression_list { <EXPR>+ % [ ',' ]$<trailing>=[ ',' ]? }
@@ -299,7 +303,7 @@ token compound-statement:sym<for> {
 token compound-statement:sym<def> {
     [:s<sym> <identifier>
     {Snake::Actions.add-declaration: $<identifier>.ast.name}
-    '(' ~ ')' <parameter_list> ':'
+    <parameter_list> ':'
     :my $*IN_DEF := 1;
     :my $*HAS_RETURN := 0;
     <new_scope>]
@@ -321,7 +325,7 @@ token new_scope {
     <suite>
 }
 
-rule parameter_list { <parameter>* % [ ',' ]$<trailing>=[ ',' ]? }
+token parameter_list { '(' ~ ')' [:s:my $*WS_NL := 1; <.ws> <parameter>* % [ ',' ]$<trailing>=[ ',' ]?] }
 
 # TODO: Parameter annotations
 token parameter { [:s<identifier> ['=' <EXPR>]?] }
