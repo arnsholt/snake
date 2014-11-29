@@ -235,7 +235,7 @@ token term:sym<string>  { <string> }
 token term:sym<integer> { <integer> }
 token term:sym<float>   { <dec_number> }
 
-# TODO: Disable indent stuff inside enclosures.
+# TODO: An empty pair of parens constructs an empty tuple.
 token circumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>] }
 token circumfix:sym<[ ]> { '[' ~ ']' [:my $*WS_NL := 1; <.ws> <expression_list>] }
 
