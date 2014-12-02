@@ -2,11 +2,9 @@ class Snake::World is HLL::World;
 
 use Snake::ModuleLoader;
 
-my $loader := nqp::gethllsym("snake", "ModuleLoader");
-
 method load_setting($name) {
     if $name ne "NULL" {
-        my $setting := $loader.load_setting($name);
+        my $setting := Snake::ModuleLoader.load_setting($name);
 
         my $set_outer := QAST::Op.new(:op<forceouterctx>,
             QAST::BVal.new(:value($*UNIT)),
