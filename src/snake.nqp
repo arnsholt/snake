@@ -1,6 +1,7 @@
 use Snake::Actions;
 use Snake::Compiler;
 use Snake::Grammar;
+use Snake::ModuleLoader;
 
 #Snake::Grammar.HOW.trace-on(Snake::Grammar);
 

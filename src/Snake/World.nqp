@@ -19,14 +19,6 @@ method load_setting($name) {
             # TODO
             nqp::die("World.load_setting for precompilation NYI");
         }
-        else {
-            self.add_load_dependency_task(:fixup_ast(
-                QAST::Op.new(:op<loadbytecode>,
-                    QAST::SVal.new(:value<Snake/ModuleLoader.moarvm>)
-                )
-            ));
-            self.add_fixup_task(:fixup_ast($set_outer));
-        }
 
         nqp::ctxlexpad($setting);
     }
