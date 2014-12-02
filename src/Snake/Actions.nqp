@@ -91,6 +91,24 @@ method circumfix:sym<[ ]>($/) {
     make $ast;
 }
 
+method circumfix:sym<{ }>($/) {
+    if $<brace_list><set> {
+        nqp::die("Sets NYI");
+    }
+    else {
+        my @keys := $<brace_list><dict><key>;
+        my @values := $<brace_list><dict><value>;
+        my $i := 0;
+        my $ast := QAST::Op.new(:op<hash>);
+        while $i < +@keys {
+            $ast.push: @keys[$i].ast;
+            $ast.push: @values[$i].ast;
+            $i++;
+        }
+        make $ast;
+    }
+}
+
 method term:sym<nqp::op>($/) {
     my $op := QAST::Op.new(:op(~$<op>));
     for $<EXPR> -> $e {
