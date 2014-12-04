@@ -265,7 +265,10 @@ method compound-statement:sym<def>($/) {
 
     my $ast := QAST::Stmts.new(QAST::Op.new(:op<bind>,
             QAST::Var.new(:name($name), :scope<lexical>),
-            $block));
+            QAST::Op.new(:op<call>,
+                QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<builtin>)),
+                $block,
+                QAST::SVal.new(:value($name)))));
 
     for $<parameter_list>.ast -> $p {
         $block[0].push: $p.ast;
