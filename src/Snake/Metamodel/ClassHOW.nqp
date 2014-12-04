@@ -13,9 +13,16 @@ class Snake::Metamodel::ClassHOW {
         }
     }
 
+    my %cheat_methods := nqp::hash(
+        'Str', -> *@_ { "<python>" },
+    );
     method new_type(:$name, :@parents) {
         my $type := nqp::newtype(self.new(:$name, :@parents), 'HashAttrStore');
+
         nqp::setinvokespec($type, nqp::null(), nqp::null_s(), &invocation);
+        nqp::setmethcache($type, %cheat_methods);
+        nqp::setmethcacheauth($type, 1);
+
         $type
     }
 
