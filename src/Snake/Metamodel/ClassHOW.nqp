@@ -25,10 +25,6 @@ class Snake::Metamodel::ClassHOW {
             # XXX: nqp::istype($attr, nqp::getcurhllsym('builtin')) doesn't work
             # here. Not entirely sure why.
             if nqp::isconcrete($instance) && nqp::istype(nqp::how($attr), Snake::Metamodel::BuiltinHOW) {
-                # TODO: This is a pretty quick hack. Need to make this something
-                # better once we get real function objects, instead of reusing
-                # NQP's types.
-                #-> *@args { nqp::call($attr, $instance, |@args) };
                 $attr := nqp::clone($attr);
                 nqp::bindattr($attr, nqp::what($attr), '__self__', $instance);
             }
