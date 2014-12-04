@@ -19,6 +19,10 @@ method load_setting($name) {
             # TODO
             nqp::die("World.load_setting for precompilation NYI");
         }
+        else {
+            self.add_fixup_task(:fixup_ast($set_outer));
+        }
+
 
         nqp::ctxlexpad($setting);
     }
