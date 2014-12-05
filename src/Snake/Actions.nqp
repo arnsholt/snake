@@ -302,6 +302,21 @@ method compound-statement:sym<class>($/) {
     $block.blocktype: 'immediate';
 
     $block[0].push: QAST::Var.new(:name<$class>, :scope<local>, :decl<var>);
+
+    # Since we're *unshifting* AST into $block, this will actually end up
+    # being the second operation in the block body. The local $class will be
+    # bound by the AST unshifted on next.
+    if $<inheritance> {
+        my $call := QAST::Op.new(:op<callmethod>, :name<add_parents>,
+            QAST::Op.new(:op<how>, QAST::Var.new(:name<$class>, :scope<local>)),
+        );
+        for $<inheritance><expression_list>.ast -> $p { $call.push: $p }
+        $block[1].unshift: $call;
+    }
+    else {
+        # TODO: Add object as default parent (if it exists).
+    }
+
     $block[1].unshift: QAST::Op.new(:op<bind>,
         QAST::Var.new(:name<$class>, :scope<local>),
         QAST::Op.new(:op<callmethod>, :name<new_type>,

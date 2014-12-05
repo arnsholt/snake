@@ -325,11 +325,14 @@ token compound-statement:sym<def> {
 token compound-statement:sym<class> {
     [:s<sym> <identifier>
     {Snake::Actions.add-declaration: $<identifier>.ast.name}
+    <inheritance>?
     ':'
     :my $*IN_CLASS := 1;
     :my $*IN_DEF := 0;
     <new_scope>]
 }
+
+token inheritance { <.ws> '(' ~ ')' [:s:my $*WS_NL := 1; <.ws> <expression_list>] }
 
 token new_scope {
     :my $*BLOCK := QAST::Block.new(QAST::Stmts.new());
