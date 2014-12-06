@@ -1,0 +1,17 @@
+Snake is a Python 3 compiler implemented in NQP, the compiler toolchain used
+to construct the Rakudo Perl 6 compiler.
+
+The project is currently very experimental and -Ofun[1], and the goal of the
+project is as much seeing what happens when the NQP toolchain is applied to a
+non-Perl 6 language as it is to achieve a full functional Python compiler
+(although that'd be pretty damn cool as well, of course).
+
+Currently, the focus is getting the interesting bits of Python's semantics
+working properly (object model, naming and binding, etc.) rather than making
+useful things. Thus literals are somewhat preliminary, and operators are
+basically unimplemented.
+
+For the time being, most discussion takes place on IRC in the #perl6 channel
+on freenode (and don't worry, the hilarity of this is not lost on me).
+
+1: Optimize for fun, for those not into the Perl 6 lingo.
