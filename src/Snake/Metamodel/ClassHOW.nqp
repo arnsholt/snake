@@ -10,7 +10,8 @@ sub invocation($invocant, *@args) {
         # TODO: Invoke constructors.
     }
     else {
-        nqp::die("User-defined callables NYI");
+        my $attr := nqp::how($invocant).find_attribute($invocant, "__call__");
+        $attr(|@args);
     }
 }
 
