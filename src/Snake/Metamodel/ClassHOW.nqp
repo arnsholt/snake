@@ -6,8 +6,14 @@ has %!class-attributes;
 
 sub invocation($invocant, *@args) {
     if !nqp::isconcrete($invocant) {
-        nqp::create($invocant);
-        # TODO: Invoke constructors.
+        my $object := nqp::create($invocant);
+        my $ctor := nqp::how($object).find_attribute($object, "__init__", :die(0));
+        if !nqp::isnull($ctor) {
+            $ctor(|@args);
+            # TODO: Fully conformant compilers should check the return value
+            # and throw an exception if anything other than None is returned.
+        }
+        $object
     }
     else {
         my $attr := nqp::how($invocant).find_attribute($invocant, "__call__");
@@ -40,7 +46,7 @@ method add_parents(*@parents) {
     if +@!parents > 1 { nqp::die("Multiple inheritance NYI"); }
 }
 
-method find_attribute($instance, str $attribute) {
+method find_attribute($instance, str $attribute, int :$die = 1) {
     if nqp::existskey(%!class-attributes, $attribute) {
         my $attr := %!class-attributes{$attribute};
         # XXX: nqp::istype($attr, nqp::getcurhllsym('builtin')) doesn't work
@@ -55,10 +61,13 @@ method find_attribute($instance, str $attribute) {
         # TODO: When we handle multiple inheritance, do proper C3 walk of
         # parents.
         if +@!parents {
-            nqp::how(@!parents[0]).find_attribute($instance, $attribute);
+            nqp::how(@!parents[0]).find_attribute($instance, $attribute, :$die);
+        }
+        elsif $die {
+            nqp::die("No attribute $attribute in class $!name");
         }
         else {
-            nqp::die("No attribute $attribute in class $!name");
+            nqp::null();
         }
     }
 }
