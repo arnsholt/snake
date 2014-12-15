@@ -19,8 +19,9 @@ my sub builtin_call($invocant, *@args) {
     if nqp::isconcrete($invocant) {
         my $what := nqp::what($invocant);
         my $code := nqp::getattr($invocant, $what, '__code__');
-        if nqp::getattr($invocant, $what, '__self__') {
-            nqp::unshift(@args, $invocant);
+        my $self := nqp::getattr($invocant, $what, '__self__');
+        if $self {
+            nqp::unshift(@args, $self);
         }
         nqp::call($code, |@args);
     }
