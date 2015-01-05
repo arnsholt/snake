@@ -165,6 +165,10 @@ token infix:sym«>=» { <sym> }
 token infix:sym<==> { <sym> }
 token infix:sym<!=> { <sym> }
 
+token infix:sym<and> { <sym> <O('%booland, :op<if>')> }
+token infix:sym<or> { <sym> <O('%booland, :op<unless>')> }
+token prefix:sym<not> { <sym> <O('%boolnot, :op<isfalse>')> }
+
 ## 2.6: Delimiters
 # Handled elsewhere, since we don't have a separate lexer stage.
 
