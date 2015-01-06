@@ -12,7 +12,9 @@ use Snake::Metamodel::ClassHOW;
 class Snake::Actions is HLL::Actions;
 
 method identifier($/) {
-    make QAST::Var.new(:name(~$/), :scope<lexical>);
+    make QAST::VarWithFallback.new(:name(~$/), :scope<lexical>,
+        :fallback(QAST::Op.new(:op<die>,
+            QAST::SVal.new(:value("Can't read unassigned variable $/")))));
 }
 
 ## 2.4: Literals
@@ -57,19 +59,7 @@ method sports($/) {
 }
 
 # 6: Expressions
-#method term:sym<identifier>($/) { make QAST::Var.new(:name(~$<identifier>), :scope<lexical>); }
-method term:sym<identifier>($/) {
-    my $ast := $<identifier>.ast;
-    #my %symbol := $*BLOCK.symbol: $ast.name;
-    ## If a variable is referenced that is not already declared in the scope,
-    ## that variable is free and refers to something in an outer scope. It is
-    ## an error to later declare it (that is, assign to it) or warnable to mark
-    ## it global/nonlocal.
-    #if !%symbol<declared> {
-    #    $*BLOCK.symbol($ast.name, :free(1));
-    #}
-    make $ast;
-}
+method term:sym<identifier>($/) { make $<identifier>.ast; }
 method term:sym<string>($/)     { make $<string>.ast; }
 method term:sym<integer>($/)    { make QAST::IVal.new(:value($<integer>.ast)) }
 method term:sym<float>($/)      { make QAST::NVal.new(:value($<dec_number>.ast)) }
@@ -415,7 +405,6 @@ method line($/) { make $<statement>.ast if $<statement>; }
 method add-declaration($var) {
     my %sym := $*BLOCK.symbol: $var;
     if !%sym<declared> {
-        nqp::die("Symbol $var referenced before being declared") if %sym<free>;
         $*BLOCK.symbol: $var, :declared(1);
         $*BLOCK[0].push: QAST::Var.new(:name($var), :scope<lexical>, :decl<var>);
     }
