@@ -30,6 +30,7 @@ method new_type(:$name, :@parents) {
     nqp::setinvokespec($type, nqp::null(), nqp::null_s(), &invocation);
     nqp::setmethcache($type, %cheat_methods);
     nqp::setmethcacheauth($type, 1);
+    nqp::settypecache($type, [$type]);
 
     $type
 }
@@ -51,9 +52,7 @@ method add_parents(*@parents) {
 method find_attribute($instance, str $attribute, int :$die = 1) {
     if nqp::existskey(%!class-attributes, $attribute) {
         my $attr := %!class-attributes{$attribute};
-        # XXX: nqp::istype($attr, nqp::getcurhllsym('builtin')) doesn't work
-        # here. Not entirely sure why.
-        if nqp::isconcrete($instance) && nqp::istype(nqp::how($attr), Snake::Metamodel::BuiltinHOW) {
+        if nqp::isconcrete($instance) && nqp::istype($attr, nqp::gethllsym('snake', 'builtin')) {
             $attr := nqp::clone($attr);
             nqp::bindattr($attr, nqp::what($attr), '__self__', $instance);
         }
