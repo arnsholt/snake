@@ -34,6 +34,8 @@ method new_type(:$name, :@parents) {
     $type
 }
 
+method name() { $!name }
+
 method add_parents(*@parents) {
     for @parents -> $p {
         # Make sure $p is a valid superclass (ie. a Python type object). That
