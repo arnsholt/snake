@@ -3,4 +3,4 @@
 # Caveat emptor: Extremely ad hoc, won't ever work outside of snake root
 # directory.
 exec ../nqp/install/bin/moar --execname="$0" --libpath=blib \
-    --libpath=../nqp/install/languages/nqp/lib blib/snake.moarvm "$@"
+    --libpath=../nqp/install/share/nqp/lib blib/snake.moarvm "$@"
