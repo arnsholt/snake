@@ -1,8 +1,5 @@
 class Snake::Metamodel::ClassHOW;
 
-has $!name;
-has @!parents;
-has @!mro;
 has %!class-attributes;
 
 sub invocation($invocant, *@args) {
@@ -37,12 +34,18 @@ method new_type(:$name, :@parents) {
     $type
 }
 
-method compose($type) {
-    @!mro := compute_c3_mro($type)
+method BUILD(:$name, :@parents) {
+    %!class-attributes := nqp::hash();
+    %!class-attributes<__name__>  := $name;
+    %!class-attributes<__bases__> := @parents;
 }
 
-method name() { $!name }
-method parents($class, :$local) { $local ?? @!parents !! @!mro }
+method compose($type) {
+    $type.HOW.bind_attribute($type, '__mro__', compute_c3_mro($type));
+}
+
+method name() { %!class-attributes<__name__> }
+method parents($class, :$local) { %!class-attributes{$local ?? '__bases__' !! '__mro__'} }
 
 # Computes C3 MRO.
 sub compute_c3_mro($class) {
@@ -138,27 +141,29 @@ sub c3_merge(@merge_list) {
 }
 
 method find_attribute($instance, str $attribute, int :$die = 1) {
-    if nqp::existskey(%!class-attributes, $attribute) {
-        my $attr := %!class-attributes{$attribute};
-        if nqp::isconcrete($instance) && nqp::istype($attr, nqp::gethllsym('snake', 'builtin')) {
-            $attr := nqp::clone($attr);
-            nqp::bindattr($attr, nqp::what($attr), '__self__', $instance);
+    for self.get_attribute('__mro__') -> $base {
+        my $value := $base.HOW.get_attribute($attribute);
+        if !nqp::isnull($value) {
+            if nqp::isconcrete($instance) && nqp::istype($value, nqp::gethllsym('snake', 'builtin')) {
+                $value := nqp::clone($value);
+                nqp::bindattr($value, nqp::what($value), '__self__', $instance);
+            }
+            return $value
         }
-        $attr
+    }
+
+    if $die {
+        nqp::die("No attribute $attribute in class {self.name}");
     }
     else {
-        # TODO: When we handle multiple inheritance, do proper C3 walk of
-        # parents.
-        if +@!parents {
-            nqp::how(@!parents[0]).find_attribute($instance, $attribute, :$die);
-        }
-        elsif $die {
-            nqp::die("No attribute $attribute in class $!name");
-        }
-        else {
-            nqp::null();
-        }
+        nqp::null();
     }
+}
+
+method get_attribute(str $attribute) {
+    nqp::existskey(%!class-attributes, $attribute) ??
+        %!class-attributes{$attribute} !!
+        nqp::null();
 }
 
 method bind_attribute($instance, str $attribute, $value) {
