@@ -66,7 +66,10 @@ method term:sym<float>($/)      { make QAST::NVal.new(:value($<dec_number>.ast))
 
 method circumfix:sym<( )>($/) {
     if +$<expression_list>.ast > 1 || $<expression_list><trailing> {
-        nqp::die("Tuples NYI");
+        # TODO: At some point, tuples should probably not be raw NQP lists.
+        my $list := QAST::Op.new(:op<list>);
+        for $<expression_list>.ast -> $elem { $list.push: $elem }
+        make $list;
     }
     else {
         make $<expression_list>.ast[0]
