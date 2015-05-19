@@ -241,7 +241,7 @@ token term:sym<float>   { <dec_number> }
 
 # TODO: An empty pair of parens constructs an empty tuple.
 # TODO: List and dictionary comprehensions.
-token circumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>] }
+token circumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>?] }
 token circumfix:sym<[ ]> { '[' ~ ']' [:my $*WS_NL := 1; <.ws> <expression_list>] }
 token circumfix:sym<{ }> { '{' ~ '}' [:my $*WS_NL := 1; <.ws> <brace_list>] }
 
