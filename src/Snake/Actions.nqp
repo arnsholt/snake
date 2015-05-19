@@ -109,6 +109,13 @@ method term:sym<nqp::op>($/) {
 }
 
 method make-attribute($/) {
+    # TODO: Implement the proper attribute lookup protocol. It goes like this:
+    # 1) Look for a __getattribute__ in the type object. If it exists, call it
+    # with the attribute name.
+    # 2) Check the object and the parent object chain for an attribute with
+    # the proper name.
+    # 3) As a last resort, call __getattr__ with the attribute name if it
+    # exists.
     make QAST::Block.new(:blocktype<immediate>,
         QAST::Var.new(:name<$_>, :scope<local>, :decl<var>),
         QAST::Op.new(:op<bind>,
