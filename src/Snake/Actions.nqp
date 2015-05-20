@@ -81,7 +81,8 @@ method circumfix:sym<( )>($/) {
 
 method circumfix:sym<[ ]>($/) {
     my $ast := QAST::Op.new(:op<list>);
-    for $<expression_list>.ast -> $e {
+    my @exprs := $<expression_list> ?? $<expression_list>.ast !! [];
+    for @exprs -> $e {
         $ast.push: $e;
     }
     make $ast;
