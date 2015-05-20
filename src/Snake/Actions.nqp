@@ -89,23 +89,19 @@ method circumfix:sym<[ ]>($/) {
 }
 
 method circumfix:sym<{ }>($/) {
-    if !$<brace_list> {
-        make QAST::Op.new(:op<hash>);
-    }
-    elsif $<brace_list><set> {
-        nqp::die("Sets NYI");
-    }
-    else {
-        my @keys := $<brace_list><dict><key>;
-        my @values := $<brace_list><dict><value>;
+    if !$<brace_list> || $<brace_list><dict> {
+        my $hash := QAST::Op.new(:op<hash>);
         my $i := 0;
-        my $ast := QAST::Op.new(:op<hash>);
-        while $i < +@keys {
-            $ast.push: @keys[$i].ast;
-            $ast.push: @values[$i].ast;
+        my $elems := $<brace_list> ?? +$<brace_list><dict><key> !! 0;
+        while $i < $elems {
+            $hash.push: $<brace_list><dict><key>[$i].ast;
+            $hash.push: $<brace_list><dict><value>[$i].ast;
             $i++;
         }
-        make $ast;
+        make $hash;
+    }
+    else {
+        nqp::die("Sets NYI");
     }
 }
 
