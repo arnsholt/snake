@@ -88,7 +88,10 @@ method circumfix:sym<[ ]>($/) {
 }
 
 method circumfix:sym<{ }>($/) {
-    if $<brace_list><set> {
+    if !$<brace_list> {
+        make QAST::Op.new(:op<hash>);
+    }
+    elsif $<brace_list><set> {
         nqp::die("Sets NYI");
     }
     else {

@@ -243,11 +243,11 @@ token term:sym<float>   { <dec_number> }
 # TODO: List and dictionary comprehensions.
 token circumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>?] }
 token circumfix:sym<[ ]> { '[' ~ ']' [:my $*WS_NL := 1; <.ws> <expression_list>] }
-token circumfix:sym<{ }> { '{' ~ '}' [:my $*WS_NL := 1; <.ws> <brace_list>] }
+token circumfix:sym<{ }> { '{' ~ '}' [:my $*WS_NL := 1; <.ws> <brace_list>?] }
 
 token brace_list {
-    || <dict=.dict_list>
-    || <set=.expression_list>
+    | <dict=.dict_list>
+    | <set=.expression_list>
 }
 
 rule dict_list {
