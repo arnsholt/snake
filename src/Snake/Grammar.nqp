@@ -343,7 +343,12 @@ token new_scope {
     <suite>
 }
 
-token parameter_list { '(' ~ ')' [:s:my $*WS_NL := 1; <.ws> <parameter>* % [ ',' ]$<trailing>=[ ',' ]?] }
+token parameter_list {
+    '(' ~ ')' [:s:my $*WS_NL := 1;
+        <parameter>+ % [ ',' ] [',' '*' <slurpy=.identifier>]?
+        | '*' <slurpy=.identifier>
+    ]?
+}
 
 # TODO: Parameter annotations
 token parameter { [:s<identifier> ['=' <EXPR>]?] }

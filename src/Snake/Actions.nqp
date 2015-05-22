@@ -289,6 +289,11 @@ method compound-statement:sym<def>($/) {
         }
     }
 
+    if $<parameter_list><slurpy> {
+        $block[0].push: QAST::Var.new(:name($<parameter_list><slurpy>.ast.name),
+            :scope<lexical>, :decl<param>, :slurpy(1));
+    }
+
     if $*IN_CLASS {
         $ast.push: QAST::Op.new(:op<callmethod>, :name<bind_attribute>,
             QAST::Op.new(:op<how>, QAST::Var.new(:name<$class>, :scope<local>)),
