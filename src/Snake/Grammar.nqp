@@ -258,7 +258,12 @@ token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [:my $*WS_NL := 1; <EXPR
 
 ## 6.3: Primaries
 token postfix:sym<attribute> { '.' <identifier> <O('%dotty')> }
-token postcircumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>?] <O('%call')> }
+token postcircumfix:sym<( )> {
+    '(' ~ ')' [:s:my $*WS_NL := 1;
+        <EXPR>+ % [ ',' ] [',' '*' <flat=.EXPR>]?
+        | '*' <flat=.EXPR>
+    ]? <O('%call')>
+}
 
 ## 6.13: Expression lists
 rule expression_list { <EXPR>+ % [ ',' ][$<trailing>=[ ',' ]]? }

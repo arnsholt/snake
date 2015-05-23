@@ -163,10 +163,13 @@ method make-attribute($/) {
 
 method postcircumfix:sym<( )>($/) {
     my $ast := QAST::Op.new(:op<call>);
-    if $<expression_list> {
-        for $<expression_list>.ast -> $e {
-            $ast.push: $e;
-        }
+    if $<EXPR> {
+        for $<EXPR> -> $e { $ast.push: $e.ast }
+    }
+    if $<flat> {
+        my $flat := $<flat>.ast;
+        $flat.flat(1);
+        $ast.push: $flat;
     }
     make $ast;
 }
