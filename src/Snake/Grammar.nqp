@@ -362,8 +362,17 @@ proto token suite {*}
 token suite:sym<runon> { <stmt-list> <.NEWLINE> }
 token suite:sym<normal> {
     <.NEWLINE>
-    <.INDENT> <statement>
-    [<.INDENT: nqp::atpos_i(@*INDENT, 0)> <statement>]*
+    <.INDENT>
+    # We need to save the current indent level *here*, between the INDENT
+    # token and the first statement. If we do it after the statement, it'll be
+    # broken.
+    #
+    # The breakage occurs if the suite contains a single compound statement.
+    # In that case, we'll save the indent level of whatever comes after the
+    # suite instead of the real one.
+    :my $indent := nqp::atpos_i(@*INDENT, 0);
+    <statement>
+    [<.INDENT: $indent> <statement>]*
     <.DEDENT>
 }
 
