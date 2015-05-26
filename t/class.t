@@ -13,3 +13,5 @@ C.foo(1, "ok 3 - call via type object")
 d = D("ok 4 - initializer")
 print(d.msg)
 d.foo("ok 5 - call from subclass")
+
+# vim: ft=python
