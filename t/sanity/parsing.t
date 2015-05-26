@@ -5,6 +5,8 @@ print("1..2")
 # than the top-level.
 def foo():
     if 1:
+        # This comment checks for a different parsefail, where the NEWLINE
+        # token didn't correctly skip blank lines.
         print("ok 2")
 print("ok 1")
 
