@@ -109,11 +109,32 @@ method circumfix:sym<{ }>($/) {
 
 method term:sym<nqp::op>($/) {
     my $op := QAST::Op.new(:op(~$<op>));
-    for $<EXPR> -> $e {
-        $op.push: $e.ast;
+    if $<positionals> {
+        for $<positionals>.ast -> $p { $op.push: $p }
     }
 
+    if $<nameds> {
+        for $<nameds>.ast -> $n { $op.push: $n }
+    }
     make $op;
+}
+
+method positionals($/) {
+    my $ast := [];
+    for $<EXPR> -> $e { $ast.push: $e.ast; }
+    make $ast;
+}
+
+method nameds($/) {
+    my $ast := [];
+    my $i := 0;
+    while $i < +$<identifier> {
+        my $e := $<EXPR>[$i].ast;
+        $e.named: $<identifier>[$i].ast.name;
+        $ast.push: $e;
+        $i++;
+    }
+    make $ast;
 }
 
 method make-attribute($/) {

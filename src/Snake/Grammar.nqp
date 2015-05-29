@@ -254,7 +254,16 @@ rule dict_list {
     [<key=.EXPR> ':' <value=.EXPR>]+ % [ ',' ] ','?
 }
 
-token term:sym<nqp::op> { 'nqp::' $<op>=[\w+] '(' ~ ')' [:my $*WS_NL := 1; <EXPR>* % [:s ',' ]] }
+token term:sym<nqp::op> {
+    'nqp::' $<op>=[\w+] '(' ~ ')' [:s:my $*WS_NL := 1; <.ws>
+        <positionals> [ ',' <nameds>]?
+        | <nameds>
+        | <?>
+    ]
+}
+
+rule positionals { [<EXPR> <.ws> <?before \, | \)>]+ % [ \, ] }
+rule nameds { [<identifier> \= <EXPR>]+ % [ \, ] }
 
 ## 6.3: Primaries
 token postfix:sym<attribute> { '.' <identifier> <O('%dotty')> }
