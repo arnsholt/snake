@@ -242,8 +242,23 @@ token term:sym<float>   { <dec_number> }
 # TODO: An empty pair of parens constructs an empty tuple.
 # TODO: List and dictionary comprehensions.
 token circumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>?] }
-token circumfix:sym<[ ]> { '[' ~ ']' [:my $*WS_NL := 1; <.ws> <expression_list>?] }
+token circumfix:sym<[ ]> {
+    '[' ~ ']' [:my $*WS_NL := 1; <.ws>
+        [ <list_comprehension>
+        | <expression_list> ]?
+    ]
+}
 token circumfix:sym<{ }> { '{' ~ '}' [:my $*WS_NL := 1; <.ws> <brace_list>?] }
+
+rule list_comprehension {
+    :my $*COMP_TARGET;
+    <EXPR> <comp_for>
+}
+rule comp_for { for <identifier> in <EXPR('d')> <comp_iter>? }
+token comp_iter { <subcomp=.comp_for> | <subcomp=.comp_if> }
+# TODO: comp_if should actually have [<EXPR('d') | <lambda>], but lambdas
+# aren't implemented yet.
+rule comp_if { 'if' <EXPR('d')> <comp_iter>? }
 
 token brace_list {
     | <dict=.dict_list>

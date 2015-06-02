@@ -82,12 +82,15 @@ method circumfix:sym<( )>($/) {
 }
 
 method circumfix:sym<[ ]>($/) {
-    my $ast := QAST::Op.new(:op<list>);
-    my @exprs := $<expression_list> ?? $<expression_list>.ast !! [];
-    for @exprs -> $e {
-        $ast.push: $e;
+    if $<list_comprehension> { make $<list_comprehension>.ast }
+    else {
+        my $ast := QAST::Op.new(:op<list>);
+        my @exprs := $<expression_list> ?? $<expression_list>.ast !! [];
+        for @exprs -> $e {
+            $ast.push: $e;
+        }
+        make $ast;
     }
-    make $ast;
 }
 
 method circumfix:sym<{ }>($/) {
@@ -105,6 +108,36 @@ method circumfix:sym<{ }>($/) {
     else {
         nqp::die("Sets NYI");
     }
+}
+
+method list_comprehension($/) {
+    $*COMP_TARGET.push: QAST::Op.new(:op<push>,
+        QAST::Var.new(:name<$>, :scope<lexical>),
+        $<EXPR>.ast);
+    make QAST::Stmts.new(:resultchild(0),
+        QAST::Op.new(:op<bind>,
+            QAST::Var.new(:name<$>, :scope<lexical>, :decl<var>),
+            QAST::Op.new(:op<list>)),
+        $<comp_for>.ast);
+}
+
+method comp_for($/) {
+    my $ast := QAST::Block.new(
+        QAST::Var.new(:name($<identifier>.ast.name), :scope<lexical>, :decl<param>));
+    if $<comp_iter> { $ast.push: $<comp_iter>.ast }
+    else { $*COMP_TARGET := $ast }
+    make QAST::Op.new(:op<for>, $<EXPR>.ast, $ast);
+}
+
+method comp_iter($/) { make $<subcomp>.ast }
+
+method comp_if($/) {
+    my $ast := QAST::Stmts.new();
+    if $<comp_iter> { $ast.push: $<comp_iter>.ast }
+    else { $*COMP_TARGET := $ast }
+    make QAST::Op.new(:op<if>,
+        $<EXPR>.ast,
+        $ast);
 }
 
 method term:sym<nqp::op>($/) {
