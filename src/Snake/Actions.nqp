@@ -197,7 +197,6 @@ method expression_list($/) {
 }
 
 # 7: Simple statements
-#method simple-statement:sym<expr>($/) { make $<EXPR>.ast; }
 method simple-statement($/) {
     make $<stmt>.ast;
 }

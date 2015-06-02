@@ -68,7 +68,6 @@ token NEWLINE { [<.ws> \n]+ }
 ### 2.1.9: Whitespace between tokens
 token wsc    { <[\ \t\f]> }
 token wsc-nl { <[\ \t\f\n]> }
-# TODO: Line joining with backslash
 token ws-nonl  { [<!ww> <.wsc>*    || <.wsc>+]    ['#' \N* | \\\n <.ws>]? }
 token ws-nl    { [<!ww> <.wsc-nl>* || <.wsc-nl>+] ['#' \N* | \\\n <.ws>]? }
 method ws() { $*WS_NL ?? self.ws-nl !! self.ws-nonl }
@@ -239,8 +238,7 @@ token term:sym<string>  { <string> }
 token term:sym<integer> { <integer> }
 token term:sym<float>   { <dec_number> }
 
-# TODO: An empty pair of parens constructs an empty tuple.
-# TODO: List and dictionary comprehensions.
+# TODO: Dictionary comprehensions.
 token circumfix:sym<( )> { '(' ~ ')' [:my $*WS_NL := 1; <.ws> <expression_list>?] }
 token circumfix:sym<[ ]> {
     '[' ~ ']' [:my $*WS_NL := 1; <.ws>
@@ -353,7 +351,6 @@ token compound-statement:sym<def> {
     <new_scope>]
 }
 
-# TODO: Inheritance
 # TODO: Decorators
 token compound-statement:sym<class> {
     [:s<sym> <identifier>
