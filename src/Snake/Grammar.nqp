@@ -69,8 +69,8 @@ token NEWLINE { [<.ws> \n]+ }
 token wsc    { <[\ \t\f]> }
 token wsc-nl { <[\ \t\f\n]> }
 # TODO: Line joining with backslash
-token ws-nonl  { [<!ww> <.wsc>*    || <.wsc>+]    ['#' \N+ | \\\n <.ws>]? }
-token ws-nl    { [<!ww> <.wsc-nl>* || <.wsc-nl>+] ['#' \N+ | \\\n <.ws>]? }
+token ws-nonl  { [<!ww> <.wsc>*    || <.wsc>+]    ['#' \N* | \\\n <.ws>]? }
+token ws-nl    { [<!ww> <.wsc-nl>* || <.wsc-nl>+] ['#' \N* | \\\n <.ws>]? }
 method ws() { $*WS_NL ?? self.ws-nl !! self.ws-nonl }
 
 ## 2.3: Identifiers and keywords
