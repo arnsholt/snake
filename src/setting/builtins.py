@@ -1,3 +1,154 @@
+# Create bootstrap NQP type objects for object and type.
+class object: pass
+class type: pass
+
+# Create Python type objects. Prefixed so that we don't overwrite the NQP
+# objects before we've stashed them in the Python ones.
+_object = nqp::create(type)
+_type = nqp::create(type)
+
+# Wire up the `type` object.
+_type.__nqptype__ = type
+_type.__class__ = _type
+_type.__bases__ = (_object,)
+_type.__mro__ = (_type, _object)
+_type.__name__ = "type"
+
+def __call__(self, *args):
+    if nqp::eqaddr(self, nqp::getcurhllsym('type')):
+        if nqp::iseq_i(nqp::elems(args), 1):
+            nqp::die("Single-argument form of type() NYI")
+        elif nqp::iseq_i(nqp::elems(args), 3):
+            name = nqp::atpos(args, 0)
+            bases = nqp::atpos(args, 1)
+            namespace = nqp::atpos(args, 2) # Ignored for now
+
+            parents = nqp::elems(bases)
+            if nqp::iseq_i(parents, 0): bases = [nqp::getcurhllsym('object')]
+            elif nqp::isgt_i(parents, 1):
+                nqp::die("Multiple inheritance NYI")
+
+            typeobj = nqp::create(self.__nqptype__)
+            # TODO: Multiple inheritance
+            mro = [typeobj]
+            for parent in nqp::atpos(bases, 0).__mro__:
+                nqp::push(mro, parent)
+            typeobj.__name__ = name
+            typeobj.__class__ = self
+            typeobj.__nqptype__ = nqp::callmethod(
+                    nqp::how(self),
+                    'new_type',
+                    name=name,
+                    mro=mro)
+            typeobj.__bases__ = bases
+            typeobj.__mro__ = mro
+            return typeobj
+        else:
+            nqp::die("type() takes one or three arguments")
+    else:
+        instance = self.__new__(self, *args)
+        # TODO: Check type of return value.
+        # TODO: Call __init__
+        return instance
+_type.__call__ = __call__
+
+# Finally, bind the Python object to the correct lexical. We also stash it
+# away as an hllsym, as the default metaclass lookup is always the builtin
+# `type`, not the lexical one.
+type = _type
+nqp::bindcurhllsym('type', type)
+
+# Wire up the `object` type.
+_object.__nqptype__ = object
+_object.__class__ = _type
+_object.__bases__ = ()
+_object.__mro__ = (_object,)
+_object.__name__ = "object"
+
+# The behaviour of object.__new__ and object.__init__ are not obvious from
+# black-box inspection at the REPL (at least they weren't to me). We therefore
+# include this exegetic comment from the CPython sources:
+#
+# You may wonder why object.__new__() only complains about arguments
+#    when object.__init__() is not overridden, and vice versa.
+#
+#    Consider the use cases:
+#
+#    1. When neither is overridden, we want to hear complaints about
+#       excess (i.e., any) arguments, since their presence could
+#       indicate there's a bug.
+#
+#    2. When defining an Immutable type, we are likely to override only
+#       __new__(), since __init__() is called too late to initialize an
+#       Immutable object.  Since __new__() defines the signature for the
+#       type, it would be a pain to have to override __init__() just to
+#       stop it from complaining about excess arguments.
+#
+#    3. When defining a Mutable type, we are likely to override only
+#       __init__().  So here the converse reasoning applies: we don't
+#       want to have to override __new__() just to stop it from
+#       complaining.
+#
+#    4. When __init__() is overridden, and the subclass __init__() calls
+#       object.__init__(), the latter should complain about excess
+#       arguments; ditto for __new__().
+#
+#    Use cases 2 and 3 make it unattractive to unconditionally check for
+#    excess arguments.  The best solution that addresses all four use
+#    cases is as follows: __init__() complains about excess arguments
+#    unless __new__() is overridden and __init__() is not overridden
+#    (IOW, if __init__() is overridden or __new__() is not overridden);
+#    symmetrically, __new__() complains about excess arguments unless
+#    __init__() is overridden and __new__() is not overridden
+#    (IOW, if __new__() is overridden or __init__() is not overridden).
+def __new__(cls, *args):
+    # TODO: Complain about args if len(args) > 0 and cls.__init__ ==
+    # object.__init__ or cls.__new__ != object.__new__
+    i = nqp::create(cls.__nqptype__)
+    i.__class__ = cls
+    i.__bases__ = cls.__bases__
+    i.__mro__ = cls.__mro__
+    i.__init__(*args)
+    return i
+__new__.__static__ = 1
+_object.__new__ = __new__
+
+def __init__(self, *args):
+    # TODO: Complain about args if len(args) > 0 and self.__class__.__new__ ==
+    # object.__new__ or self.__class__.__init__ != object.__init__
+    pass
+_object.__init__ = __init__
+
+def __getattribute__(self, name):
+    # We start by walking the MRO, because data descriptors (things with both
+    # __get__ and __set__) override instance attributes.
+    mro = nqp::getattr(self, nqp::what(self), "__mro__")
+    for p in mro:
+        inparent = nqp::getattr(p, nqp::what(p), name)
+        if not nqp::isnull(nqp::getlex('inparent')):
+            break
+
+    # TODO: Check for data descriptor
+
+    inself = nqp::getattr(self, nqp::what(self), name)
+    if not nqp::isnull(nqp::getlex('inself')):
+        return inself
+    elif not nqp::isnull(nqp::getlex('inparent')):
+        # TODO: Check for descriptor protocol.
+        if nqp::istype(inparent, nqp::getcurhllsym('builtin')) and \
+                not nqp::getattr(inparent, nqp::what(inparent), '__static__'):
+            inparent = nqp::clone(inparent)
+            inparent.__self__ = self
+        return inparent
+
+    nqp::die(nqp::concat("No such attribute: ", name))
+_object.__getattribute__ = __getattribute__
+
+# Then bind it to the lexical, and stash it as an hllsym for the same reasons
+# as for `type`.
+object = _object
+nqp::bindcurhllsym('object', object)
+
 def print(msg):
     nqp::say(msg)
 

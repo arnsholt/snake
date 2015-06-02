@@ -36,8 +36,30 @@ my sub builtin_call($invocant, *@args) {
 
 my $builtin := Snake::Metamodel::ClassHOW.new_type(:name("<builtin>"));
 nqp::setinvokespec($builtin, nqp::null(), nqp::null(), &builtin_call);
+nqp::settypecache($builtin, [$builtin]);
 
 nqp::bindhllsym('snake', 'builtin', $builtin);
+
+my sub find_special($invocant, str $attr) {
+    my $type := nqp::getattr($invocant, nqp::what($invocant), '__class__');
+    my @mro := nqp::getattr($type, nqp::what($type), '__mro__');
+    for @mro -> $parent {
+        my $value := nqp::getattr($parent, nqp::what($parent), $attr);
+        # TODO: If it's a built-in, do the whole clone and __self__ bind
+        # thing. Further down the line, handle descriptors too.
+        if !nqp::isnull($value) {
+            if nqp::istype($value, nqp::gethllsym('snake', 'builtin')) {
+                $value := nqp::clone($value);
+                nqp::bindattr($value, nqp::what($value), '__self__', $invocant);
+            }
+            return $value;
+        }
+        #return $value if !nqp::isnull($value);
+    }
+    my $name := nqp::getattr($type, nqp::what($type), '__name__');
+    nqp::die("Couldn't find $attr in $name");
+}
+nqp::bindhllsym('snake', 'find_special', &find_special);
 
 sub MAIN(@args) {
     $comp.command_line(@args, :encoding<utf8>);

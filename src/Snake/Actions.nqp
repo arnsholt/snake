@@ -171,48 +171,8 @@ method nameds($/) {
 }
 
 method make-attribute($/) {
-    # TODO: Implement the proper attribute lookup protocol. It goes like this:
-    # 1) Look for a __getattribute__ in the type object. If it exists, call it
-    # with the attribute name.
-    # 2) Check the object and the parent object chain for an attribute with
-    # the proper name.
-    # 3) As a last resort, call __getattr__ with the attribute name if it
-    # exists.
-    make QAST::Block.new(:blocktype<immediate>,
-        QAST::Var.new(:name<$_>, :scope<local>, :decl<var>),
-        QAST::Op.new(:op<bind>,
-            QAST::Var.new(:name<$_>, :scope<local>),
-            $/[0].ast
-        ),
-        QAST::Op.new(:op<if>,
-            QAST::Op.new(:op<isconcrete>,
-                QAST::Var.new(:name<$_>, :scope<local>),
-            ),
-            QAST::Stmts.new(
-                # nqp::getattr($_, $_.WHAT, $<OPER><identifier>.name) //
-                #     $_.HOW.find_attribute($_, $<OPER><identifier>.name)
-                QAST::Op.new(:op<ifnull>,
-                    QAST::Op.new(:op<getattr>,
-                        QAST::Var.new(:name<$_>, :scope<local>),
-                        QAST::Op.new(:op<what>, QAST::Var.new(:name<$_>, :scope<local>)),
-                        QAST::SVal.new(:value($<OPER><identifier>.ast.name)),
-                    ),
-                    QAST::Op.new(:op<callmethod>, :name<find_attribute>,
-                        QAST::Op.new(:op<how>, QAST::Var.new(:name<$_>, :scope<local>)),
-                        QAST::Var.new(:name<$_>, :scope<local>),
-                        QAST::SVal.new(:value($<OPER><identifier>.ast.name)),
-                    ),
-                ),
-            ),
-            QAST::Stmts.new(
-                QAST::Op.new(:op<callmethod>, :name<find_attribute>,
-                    QAST::Op.new(:op<how>, QAST::Var.new(:name<$_>, :scope<local>)),
-                    QAST::Var.new(:name<$_>, :scope<local>),
-                    QAST::SVal.new(:value($<OPER><identifier>.ast.name)),
-                ),
-            ),
-        ),
-    );
+    make self.special-call($/[0].ast, '__getattribute__',
+        QAST::SVal.new(:value($<OPER><identifier>.ast.name)));
 }
 
 method postcircumfix:sym<( )>($/) {
@@ -267,15 +227,12 @@ method assignment($/) {
             QAST::Var.new(:name<$_>, :scope<local>, :decl<var>),
             QAST::Op.new(:op<bind>,
                 QAST::Var.new(:name<$_>, :scope<local>),
-                $<lhs>[0].ast
-            ),
-            QAST::Op.new(:op<callmethod>, :name<bind_attribute>,
-                QAST::Op.new(:op<how>, QAST::Var.new(:name<$_>, :scope<local>)),
+                $<lhs>[0].ast),
+            QAST::Op.new(:op<bindattr>,
                 QAST::Var.new(:name<$_>, :scope<local>),
+                QAST::Op.new(:op<what>, QAST::Var.new(:name<$_>, :scope<local>)),
                 QAST::SVal.new(:value($<lhs><postfix><identifier>.ast.name)),
-                $<rhs>.ast,
-            ),
-        );
+                $<rhs>.ast));
     }
     elsif $<lhs><postcircumfix> {
         # TODO
@@ -325,22 +282,28 @@ method compound-statement:sym<def>($/) {
         $block[1] := QAST::Op.new(:op<lexotic>, :name<$RETURN>, $block[1]);
     }
 
-    my $ast := QAST::Stmts.new(QAST::Op.new(:op<bind>,
-            QAST::Var.new(:name($name), :scope<lexical>),
-            QAST::Op.new(:op<call>,
-                QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<builtin>)),
-                $block,
-                QAST::SVal.new(:value($name)))));
+    my $funobj := QAST::Op.new(:op<call>,
+        QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<builtin>)),
+        $block,
+        QAST::SVal.new(:value($name)));
 
+    my @ops := [];
     for $<parameter_list>.ast -> $p {
         $block[0].push: $p.ast;
+        # Handling arguments with default values is kind of weird, because
+        # Python's semantics for them are weird. Instead of being thunks that
+        # are evaluated for each call to a function (like in Perl or Lisp),
+        # they're evaluated *once*: when the function is bound to its symbol.
         if $p<EXPR> {
             my $default-name := '$default' ~ $*DEFAULTS++;
             my $var := QAST::Var.new(:name($default-name), :scope<lexical>);
+            # Add a declaration for the variable holding the precomputed
+            # default value to the containing $*BLOCK.
             $*BLOCK[0].push: QAST::Var.new(:name($default-name),
                 :scope<lexical>, :decl<var>);
+            # Set the default value of the parameter.
             $p.ast.default($var);
-            $ast.push: QAST::Op.new(:op<bind>,
+            @ops.push: QAST::Op.new(:op<bind>,
                 $var,
                 $p<EXPR>.ast);
         }
@@ -352,46 +315,59 @@ method compound-statement:sym<def>($/) {
     }
 
     if $*IN_CLASS {
-        $ast.push: QAST::Op.new(:op<callmethod>, :name<bind_attribute>,
-            QAST::Op.new(:op<how>, QAST::Var.new(:name<$class>, :scope<local>)),
-            QAST::Var.new(:name<$class>, :scope<local>),
+        my $class := QAST::Var.new(:name<$class>, :scope<local>);
+        @ops.push: QAST::Op.new(:op<bindattr>,
+            $class,
+            QAST::Op.new(:op<what>, $class),
             QAST::SVal.new(:value($name)),
+            $funobj);
+    }
+    else {
+        @ops.push: QAST::Op.new(:op<bind>,
             QAST::Var.new(:name($name), :scope<lexical>),
-        );
+            $funobj);
     }
 
-    make $ast;
+    make +@ops == 1 ?? @ops[0] !! QAST::Stmts.new(|@ops);
 }
 
 method compound-statement:sym<class>($/) {
     my $name := $<identifier>.ast.name;
     my $block := $<new_scope>.ast;
-    $block.blocktype: 'immediate';
 
-    $block[0].push: QAST::Var.new(:name<$class>, :scope<local>, :decl<var>);
+    # Bootstrap classes are created directly from the ClassHOW
+    my $bootstrap := QAST::Op.new(:op<callmethod>, :name<new_type>,
+        QAST::WVal.new(:value(Snake::Metamodel::ClassHOW)),
+        QAST::SVal.new(:value($name), :named<name>));
 
-    my $inheritance := QAST::Op.new(:op<list>, :named<parents>);
+    # Standard class creation is done by calling the type object, with three
+    # arguments. ATM only the first one is actually relevant, but to get it
+    # fully properly right it should be three, so we pass three.
+    my $inheritance := QAST::Op.new(:op<list>);
     if $<inheritance> {
-        for $<inheritance><expression_list>.ast -> $p { $inheritance.push: $p }
-    }
-    else {
-        # TODO: Add object as default parent (if it exists).
+        for $<inheritance><expression_list>.ast -> $parent {
+            $inheritance.push: $parent;
+        }
     }
 
-    $block[1].unshift: QAST::Op.new(:op<bind>,
-        QAST::Var.new(:name<$class>, :scope<local>),
-        QAST::Op.new(:op<callmethod>, :name<new_type>,
-            QAST::WVal.new(:value(Snake::Metamodel::ClassHOW)),
-            QAST::SVal.new(:value($name), :named<name>),
-            $inheritance
-        ),
-    );
+    my $standard := QAST::Op.new(:op<call>,
+        QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<type>)),
+        QAST::SVal.new(:value($name)),
+        $inheritance,
+        QAST::Op.new(:op<null>));
+
+    my $creation := QAST::Op.new(:op<if>,
+        QAST::Op.new(:op<isnull>,
+            QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<type>))),
+            $bootstrap,
+            $standard);
+
+    $block[0].push: QAST::Var.new(:name<$class>, :scope<local>, :decl<param>);
     $block[1].push: QAST::Var.new(:name<$class>, :scope<local>);
 
     make QAST::Op.new(:op<bind>,
         QAST::Var.new(:name($name), :scope<lexical>),
-        $block
-    );
+        QAST::Op.new(:op<call>, $block, $creation));
 }
 
 method new_scope($/) {
@@ -480,6 +456,16 @@ method add-declaration($var) {
         $*BLOCK.symbol: $var, :declared(1);
         $*BLOCK[0].push: QAST::Var.new(:name($var), :scope<lexical>, :decl<var>);
     }
+}
+
+method special-call($invocant, $special, *@args) {
+    QAST::Op.new(:op<call>,
+        QAST::Op.new(:op<call>,
+            QAST::Op.new(:op<getcurhllsym>,
+                QAST::SVal.new(:value<find_special>)),
+            $invocant,
+            QAST::SVal.new(:value($special))),
+        |@args);
 }
 
 # We need custom handling for the attribute lookups. Syntactically, it makes
