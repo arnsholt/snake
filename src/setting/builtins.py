@@ -108,8 +108,6 @@ def __new__(cls, *args):
     # object.__init__ or cls.__new__ != object.__new__
     i = nqp::create(cls.__nqptype__)
     i.__class__ = cls
-    i.__bases__ = cls.__bases__
-    i.__mro__ = cls.__mro__
     i.__init__(*args)
     return i
 __new__.__static__ = 1
@@ -124,7 +122,8 @@ _object.__init__ = __init__
 def __getattribute__(self, name):
     # We start by walking the MRO, because data descriptors (things with both
     # __get__ and __set__) override instance attributes.
-    mro = nqp::getattr(self, nqp::what(self), "__mro__")
+    cls = nqp::getattr(self, nqp::what(self), "__class__")
+    mro = nqp::getattr(cls, nqp::what(cls), "__mro__")
     for p in mro:
         inparent = nqp::getattr(p, nqp::what(p), name)
         if not nqp::isnull(nqp::getlex('inparent')):
