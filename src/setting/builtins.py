@@ -154,4 +154,10 @@ nqp::bindcurhllsym('object', object)
 def print(msg):
     nqp::say(msg)
 
+def isinstance(o, typeinfo):
+    # TODO: `typeinfo` can be either a type object or a tuple of typeobjects
+    # (or tuples of type objects, etc.).
+    # TODO: Throw exception if bad arguments.
+    return nqp::istype(o, typeinfo.__nqptype__)
+
 YOU_ARE_HERE
