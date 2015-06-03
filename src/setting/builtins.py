@@ -31,8 +31,9 @@ def __call__(self, *args):
 
             typeobj = nqp::create(self.__nqptype__)
             # TODO: Multiple inheritance
+            parentmro = nqp::atpos(bases, 0).__mro__
             mro = [typeobj]
-            for parent in nqp::atpos(bases, 0).__mro__:
+            for parent in parentmro:
                 nqp::push(mro, parent)
             typeobj.__name__ = name
             typeobj.__class__ = self
@@ -40,7 +41,7 @@ def __call__(self, *args):
                     nqp::how(self),
                     'new_type',
                     name=name,
-                    mro=mro)
+                    mro=[parent.__nqptype__ for parent in parentmro])
             typeobj.__bases__ = bases
             typeobj.__mro__ = mro
             return typeobj
