@@ -1,6 +1,7 @@
 # Create bootstrap NQP type objects for object and type.
 class object: pass
 class type: pass
+nqp::settypecache(type, [object, type])
 
 # Create Python type objects. Prefixed so that we don't overwrite the NQP
 # objects before we've stashed them in the Python ones.
