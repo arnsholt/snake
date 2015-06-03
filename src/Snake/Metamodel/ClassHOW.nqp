@@ -23,6 +23,13 @@ my %cheat_methods := nqp::hash(
 method new_type(:$name, :@mro) {
     my $type := nqp::newtype(self.new(:$name), 'HashAttrStore');
 
+    # Not strictily necessary to clone here, since the passed-in list isn't
+    # used further by calling code ATM, but if that changes down the line
+    # we're safer this way. If this path turns out to be a bottle-neck, we can
+    # reconsider.
+    @mro := nqp::clone(@mro);
+    nqp::push(@mro, $type);
+
     nqp::setinvokespec($type, nqp::null(), nqp::null_s(), &invocation);
     nqp::setmethcache($type, %cheat_methods);
     nqp::setmethcacheauth($type, 1);
