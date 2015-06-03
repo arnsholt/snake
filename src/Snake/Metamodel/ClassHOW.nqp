@@ -10,10 +10,14 @@ sub invocation($invocant, *@args) {
 }
 
 my %cheat_methods := nqp::hash(
-    'Str', -> *@_ {
-        my $self := @_[0];
-        my $name := nqp::getattr($self, nqp::what($self), '__name__');
-        "<snake NQP type for: $name>"
+    'Str', -> $self {
+        if nqp::isconcrete($self) {
+            my $class := nqp::getattr($self, nqp::what($self), '__class__');
+            "<{nqp::getattr($class, nqp::what($class), '__name__')} instance>"
+        }
+        else {
+            "<NQP type for {nqp::how($self).name}>"
+        }
     },
 );
 method new_type(:$name, :@mro) {
