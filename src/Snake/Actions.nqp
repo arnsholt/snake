@@ -215,11 +215,7 @@ method ordinary-statement:sym<continue>($/) { make QAST::Op.new(:op<control>, :n
 
 method assignment($/) {
     if $<lhs><identifier> {
-        my $var := $<lhs><identifier>.ast;
-        self.add-declaration: $var.name;
-        make QAST::Op.new(:op<bind>,
-            $var,
-            $<rhs>.ast);
+        make self.bind-symbol($<lhs><identifier>.ast.name, $<rhs>.ast);
     }
     elsif $<lhs><postfix> {
         make QAST::Block.new(:blocktype<immediate>,
@@ -313,19 +309,7 @@ method compound-statement:sym<def>($/) {
             :scope<lexical>, :decl<param>, :slurpy(1));
     }
 
-    if $*IN_CLASS {
-        my $class := QAST::Var.new(:name<$class>, :scope<local>);
-        @ops.push: QAST::Op.new(:op<bindattr>,
-            $class,
-            QAST::Op.new(:op<what>, $class),
-            QAST::SVal.new(:value($name)),
-            $funobj);
-    }
-    else {
-        @ops.push: QAST::Op.new(:op<bind>,
-            QAST::Var.new(:name($name), :scope<lexical>),
-            $funobj);
-    }
+    @ops.push: self.bind-symbol($name, $funobj);
 
     make +@ops == 1 ?? @ops[0] !! QAST::Stmts.new(|@ops);
 }
@@ -364,9 +348,7 @@ method compound-statement:sym<class>($/) {
     $block[0].push: QAST::Var.new(:name<$class>, :scope<local>, :decl<param>);
     $block[1].push: QAST::Var.new(:name<$class>, :scope<local>);
 
-    make QAST::Op.new(:op<bind>,
-        QAST::Var.new(:name($name), :scope<lexical>),
-        QAST::Op.new(:op<call>, $block, $creation));
+    make self.bind-symbol($name, QAST::Op.new(:op<call>, $block, $creation));
 }
 
 method new_scope($/) {
@@ -465,6 +447,26 @@ method special-call($invocant, $special, *@args) {
             $invocant,
             QAST::SVal.new(:value($special))),
         |@args);
+}
+
+# Joint method for all the code paths that bind something to a symbol (class,
+# def, etc). This is needed because binding has quite different semantics
+# inside a class block.
+method bind-symbol($symbol, $rhs) {
+    if $*IN_CLASS {
+        my $class := QAST::Var.new(:name<$class>, :scope<local>);
+        return QAST::Op.new(:op<bindattr>,
+            $class,
+            QAST::Op.new(:op<what>, $class),
+            QAST::SVal.new(:value($symbol)),
+            $rhs);
+    }
+    else {
+        self.add-declaration($symbol);
+        return QAST::Op.new(:op<bind>,
+            QAST::Var.new(:name($symbol), :scope<lexical>),
+            $rhs);
+    }
 }
 
 # We need custom handling for the attribute lookups. Syntactically, it makes
