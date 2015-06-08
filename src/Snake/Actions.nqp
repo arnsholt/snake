@@ -59,7 +59,24 @@ method sports($/) {
 }
 
 # 6: Expressions
-method term:sym<identifier>($/) { make $<identifier>.ast; }
+method term:sym<identifier>($/) {
+    my $ident := $<identifier>.ast;
+    if $*IN_CLASS{
+        my $class := QAST::Var.new(:name<$class>, :scope<local>);
+        make $*BLOCK.symbol($ident.name)<declared> ??
+            QAST::Op.new(:op<ifnull>,
+                QAST::Op.new(:op<getattr>,
+                    $class,
+                QAST::Op.new(:op<what>, $class),
+                QAST::SVal.new(:value($ident.name))),
+                $ident.fallback) !!
+            $ident;
+    }
+    else {
+        make $ident;
+    }
+}
+
 method term:sym<string>($/)     { make $<string>.ast; }
 method term:sym<integer>($/)    { make QAST::IVal.new(:value($<integer>.ast)) }
 method term:sym<float>($/)      { make QAST::NVal.new(:value($<dec_number>.ast)) }
@@ -453,6 +470,7 @@ method special-call($invocant, $special, *@args) {
 # def, etc). This is needed because binding has quite different semantics
 # inside a class block.
 method bind-symbol($symbol, $rhs) {
+    self.add-declaration($symbol);
     if $*IN_CLASS {
         my $class := QAST::Var.new(:name<$class>, :scope<local>);
         return QAST::Op.new(:op<bindattr>,
@@ -462,7 +480,6 @@ method bind-symbol($symbol, $rhs) {
             $rhs);
     }
     else {
-        self.add-declaration($symbol);
         return QAST::Op.new(:op<bind>,
             QAST::Var.new(:name($symbol), :scope<lexical>),
             $rhs);
