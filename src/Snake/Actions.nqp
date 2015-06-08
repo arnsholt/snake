@@ -282,7 +282,7 @@ method compound-statement:sym<def>($/) {
     }
 
     my $funobj := QAST::Op.new(:op<call>,
-        QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<builtin>)),
+        QAST::Op.new(:op<getcurhllsym>, QAST::SVal.new(:value<function>)),
         $block,
         QAST::SVal.new(:value($name)));
 

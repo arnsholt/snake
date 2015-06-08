@@ -15,6 +15,16 @@ $comp.parseactions(Snake::Actions);
 my @options := $comp.commandline_options();
 @options.push: 'setting=s';
 
+my @builtin-fixups := [];
+nqp::bindhllsym('snake', 'builtin-fixup', sub ($pytype) {
+    for @builtin-fixups -> $builtin {
+        nqp::bindattr($builtin, nqp::what($builtin), '__class__', $pytype)
+    }
+    # This message will self-destruct in 5, 4, 3, 2, 1...
+    @builtin-fixups := nqp::null();
+    nqp::bindhllsym('snake', 'builtin-fixup', nqp::null()); # Poof.
+});
+
 my sub builtin_call($invocant, *@args) {
     if nqp::isconcrete($invocant) {
         my $what := nqp::what($invocant);
@@ -30,6 +40,7 @@ my sub builtin_call($invocant, *@args) {
         my $f := nqp::create($invocant);
         nqp::bindattr($f, $invocant, '__code__', @args[0]);
         nqp::bindattr($f, $invocant, '__name__', @args[1]);
+        @builtin-fixups.push: $f;
         $f
     }
 }
@@ -39,6 +50,7 @@ nqp::setinvokespec($builtin, nqp::null(), nqp::null(), &builtin_call);
 nqp::settypecache($builtin, [$builtin]);
 
 nqp::bindhllsym('snake', 'builtin', $builtin);
+nqp::bindhllsym('snake', 'function', $builtin);
 
 my sub find_special($invocant, str $attr) {
     my $type := nqp::getattr($invocant, nqp::what($invocant), '__class__');

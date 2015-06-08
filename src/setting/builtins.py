@@ -150,6 +150,21 @@ _object.__getattribute__ = __getattribute__
 object = _object
 nqp::bindcurhllsym('object', object)
 
+# Until now, functions have been created directly from the NQP type object.
+# Fix that, and set __class__ attribute on the functions we've already
+# created.
+_builtin = type('builtin', [object], nqp::null())
+_builtin.__nqptype__ = nqp::getcurhllsym('function')
+nqp::settypecache(_builtin.__nqptype__, [object.__nqptype__, _builtin.__nqptype__])
+
+def __init__(self, code, name):
+    self.__code__ = code
+    self.__name__ = name
+_builtin.__init__ = __init__
+
+nqp::getcurhllsym('builtin-fixup')(_builtin)
+nqp::bindcurhllsym('function', _builtin)
+
 def print(msg):
     nqp::say(msg)
 
