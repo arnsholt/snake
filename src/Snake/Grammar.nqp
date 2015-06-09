@@ -164,6 +164,8 @@ token infix:sym«>=» { <sym> }
 token infix:sym<==> { <sym> }
 token infix:sym<!=> { <sym> }
 
+token infix:sym<is> { <sym> <O('%relational, :op<eqaddr>')> }
+
 token infix:sym<and> { <sym> <O('%booland, :op<if>')> }
 token infix:sym<or> { <sym> <O('%booland, :op<unless>')> }
 token prefix:sym<not> { <sym> <O('%boolnot, :op<isfalse>')> }
