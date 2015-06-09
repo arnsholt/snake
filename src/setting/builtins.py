@@ -1,6 +1,7 @@
 # Create bootstrap NQP type objects for object and type.
 class object: pass
 class type: pass
+nqp::bindcurhllsym('object_type', object)
 nqp::settypecache(type, [object, type])
 
 # Create Python type objects. Prefixed so that we don't overwrite the NQP
@@ -67,6 +68,9 @@ _object.__bases__ = ()
 _object.__mro__ = (_object,)
 _object.__name__ = "object"
 
+# We'll need this round about, so let's store it somewhere more convenient.
+_find_special = nqp::getcurhllsym('find_special')
+
 # The behaviour of object.__new__ and object.__init__ are not obvious from
 # black-box inspection at the REPL (at least they weren't to me). We therefore
 # include this exegetic comment from the CPython sources:
@@ -108,7 +112,7 @@ def __new__(cls, *args):
     # object.__init__ or cls.__new__ != object.__new__
     i = nqp::create(cls.__nqptype__)
     i.__class__ = cls
-    i.__init__(*args)
+    _find_special(i, '__init__')(*args)
     return i
 __new__.__static__ = 1
 _object.__new__ = __new__
@@ -129,17 +133,20 @@ def __getattribute__(self, name):
         if not nqp::isnull(nqp::getlex('inparent')):
             break
 
-    # TODO: Check for data descriptor
+    if not nqp::isnull(nqp::getlex('inparent')) and nqp::isconcrete(inparent) \
+            and nqp::istype(inparent, nqp::getcurhllsym('object_type')):
+        get = _find_special(inparent, '__get__')
+        set = _find_special(inparent, '__set__')
+        if not nqp::isnull(nqp::getlex('get')) and not nqp::isnull(nqp::getlex('set')):
+            # TODO
+            nqp::die("Data descriptors NYI")
 
     inself = nqp::getattr(self, nqp::what(self), name)
     if not nqp::isnull(nqp::getlex('inself')):
         return inself
     elif not nqp::isnull(nqp::getlex('inparent')):
-        # TODO: Check for descriptor protocol.
-        if nqp::istype(inparent, nqp::getcurhllsym('builtin')) and \
-                not nqp::getattr(inparent, nqp::what(inparent), '__static__'):
-            inparent = nqp::clone(inparent)
-            inparent.__self__ = self
+        if not nqp::isnull(nqp::getlex('get')):
+            inparent = get(self, cls)
         return inparent
 
     nqp::die(nqp::concat("No such attribute: ", name))
@@ -161,6 +168,14 @@ def __init__(self, code, name):
     self.__code__ = code
     self.__name__ = name
 _builtin.__init__ = __init__
+
+def __get__(self, instance, owner):
+    if not nqp::isnull(nqp::getattr(self, nqp::what(self), '__static__')):
+        return self
+    clone = nqp::clone(self)
+    clone.__self__ = instance
+    return clone
+_builtin.__get__ = __get__
 
 nqp::getcurhllsym('builtin-fixup')(_builtin)
 nqp::bindcurhllsym('function', _builtin)

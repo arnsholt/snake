@@ -28,6 +28,7 @@ nqp::bindhllsym('snake', 'builtin-fixup', sub ($pytype) {
 my sub builtin_call($invocant, *@args) {
     if nqp::isconcrete($invocant) {
         my $what := nqp::what($invocant);
+        #nqp::say("Calling {nqp::getattr($invocant, $what, "__name__")}");
         my $code := nqp::getattr($invocant, $what, '__code__');
         my $self := nqp::getattr($invocant, $what, '__self__');
         if $self {
@@ -57,8 +58,7 @@ my sub find_special($invocant, str $attr) {
     my @mro := nqp::getattr($type, nqp::what($type), '__mro__');
     for @mro -> $parent {
         my $value := nqp::getattr($parent, nqp::what($parent), $attr);
-        # TODO: If it's a built-in, do the whole clone and __self__ bind
-        # thing. Further down the line, handle descriptors too.
+        # TODO: Handle descriptors.
         if !nqp::isnull($value) {
             if nqp::istype($value, nqp::gethllsym('snake', 'builtin')) {
                 $value := nqp::clone($value);
@@ -66,10 +66,10 @@ my sub find_special($invocant, str $attr) {
             }
             return $value;
         }
-        #return $value if !nqp::isnull($value);
     }
-    my $name := nqp::getattr($type, nqp::what($type), '__name__');
-    nqp::die("Couldn't find $attr in $name");
+    #my $name := nqp::getattr($type, nqp::what($type), '__name__');
+    #nqp::die("Couldn't find $attr in $name");
+    nqp::null();
 }
 nqp::bindhllsym('snake', 'find_special', &find_special);
 
