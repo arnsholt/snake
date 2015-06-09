@@ -1,3 +1,6 @@
+# We'll need this round about, so let's store it somewhere more convenient.
+_find_special = nqp::getcurhllsym('find_special')
+
 # Create bootstrap NQP type objects for object and type.
 class object: pass
 class type: pass
@@ -55,6 +58,24 @@ def __call__(self, *args):
         return instance
 _type.__call__ = __call__
 
+def __getattribute__(self, name):
+    mro = nqp::getattr(self, nqp::what(self), '__mro__')
+    for p in mro:
+        value = nqp::getattr(p, nqp::what(p), name)
+        if not nqp::isnull(nqp::getlex('value')):
+            break
+
+    if not nqp::isnull(nqp::getlex('value')):
+        # Return early for non-Python things.
+        if not nqp::isconcrete(value) or not nqp::istype(value,
+                nqp::getcurhllsym('object_type')):
+            return value
+        get = _find_special(value, '__get__')
+        if not nqp::isnull(nqp::getlex('get')):
+            value = get(None, self)
+        return value
+_type.__getattribute__ = __getattribute__
+
 # Finally, bind the Python object to the correct lexical. We also stash it
 # away as an hllsym, as the default metaclass lookup is always the builtin
 # `type`, not the lexical one.
@@ -67,9 +88,6 @@ _object.__class__ = _type
 _object.__bases__ = ()
 _object.__mro__ = (_object,)
 _object.__name__ = "object"
-
-# We'll need this round about, so let's store it somewhere more convenient.
-_find_special = nqp::getcurhllsym('find_special')
 
 # The behaviour of object.__new__ and object.__init__ are not obvious from
 # black-box inspection at the REPL (at least they weren't to me). We therefore
@@ -173,7 +191,8 @@ class _builtin:
         self.__name__ = name
 
     def __get__(self, instance, owner):
-        if not nqp::isnull(nqp::getattr(self, nqp::what(self), '__static__')):
+        if instance is None or not nqp::isnull(nqp::getattr(self,
+                nqp::what(self), '__static__')):
             return self
         clone = nqp::clone(self)
         clone.__self__ = instance
