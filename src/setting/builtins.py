@@ -167,23 +167,19 @@ NoneType.__new__  = __new__
 # Until now, functions have been created directly from the NQP type object.
 # Fix that, and set __class__ attribute on the functions we've already
 # created.
-_builtin = type('builtin', [object], nqp::null())
+class _builtin:
+    def __init__(self, code, name):
+        self.__code__ = code
+        self.__name__ = name
+
+    def __get__(self, instance, owner):
+        if not nqp::isnull(nqp::getattr(self, nqp::what(self), '__static__')):
+            return self
+        clone = nqp::clone(self)
+        clone.__self__ = instance
+        return clone
 _builtin.__nqptype__ = nqp::getcurhllsym('function')
 nqp::settypecache(_builtin.__nqptype__, [object.__nqptype__, _builtin.__nqptype__])
-
-def __init__(self, code, name):
-    self.__code__ = code
-    self.__name__ = name
-_builtin.__init__ = __init__
-
-def __get__(self, instance, owner):
-    if not nqp::isnull(nqp::getattr(self, nqp::what(self), '__static__')):
-        return self
-    clone = nqp::clone(self)
-    clone.__self__ = instance
-    return clone
-_builtin.__get__ = __get__
-
 nqp::getcurhllsym('builtin-fixup')(_builtin)
 nqp::bindcurhllsym('function', _builtin)
 
