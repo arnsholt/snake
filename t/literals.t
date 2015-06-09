@@ -1,4 +1,4 @@
-print("1..11")
+print("1..12")
 
 x = []
 print("ok 1 - creating empty list")
@@ -29,5 +29,10 @@ x = (1,)
 print("ok 10 - creating single-element tuple")
 x = (1, 2, 3)
 print("ok 11 - creating multi-element tuple")
+
+if None.__class__() is None:
+    print("ok 12 - None singleton")
+else:
+    print("not ok 12 - None singleton")
 
 # vim: ft=python

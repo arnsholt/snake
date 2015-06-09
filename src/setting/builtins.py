@@ -157,6 +157,13 @@ _object.__getattribute__ = __getattribute__
 object = _object
 nqp::bindcurhllsym('object', object)
 
+class NoneType: pass
+None = NoneType()
+nqp::bindcurhllsym('None', None)
+def __new__(cls):
+    return nqp::getcurhllsym('None')
+NoneType.__new__  = __new__
+
 # Until now, functions have been created directly from the NQP type object.
 # Fix that, and set __class__ attribute on the functions we've already
 # created.
