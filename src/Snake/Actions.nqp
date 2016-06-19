@@ -47,7 +47,7 @@ method string($/) { make $<quote_EXPR>.ast; }
 method sports($/) {
     if $<EOF> { make 0 }
     else {
-        my $indent := 0;
+        my int $indent := 0;
         $indent := $indent + nqp::chars(~$/[0]);
         if ~$/[1] {
             $indent := $indent + (8 - $indent % 8); # Increment to nearest multiple of 8
