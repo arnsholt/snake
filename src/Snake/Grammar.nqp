@@ -241,7 +241,7 @@ method check-dedent($spaces-or-tabs) {
 # source file mixes tabs and spaces in a way that makes the meaning dependent
 # on the worth of a tab in spaces").
 token spaces-or-tabs {
-    [ | ^^ \f? (' '*) (\t*) [<[\ \f]> <.panic: "Ambiguous indentation">]?
+    [ | ^^ \f? (' '|\t)*
       | $<EOF>=<?> $
     ]
     || <.panic: "Indent not at beginning of line">
