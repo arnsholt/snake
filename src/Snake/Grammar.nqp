@@ -191,13 +191,13 @@ token prefix:sym<not> { <sym> <O('%boolnot, :op<isfalse>')> }
 token INDENT($indent = -1) {
     # Gobble up leading whitespace, push new indent onto stack (or die if bad
     # indent).
-    <sports> <?{ self.check-indent($<sports>.ast, $indent) }>
+    <spaces-or-tabs> <?{ self.check-indent($<spaces-or-tabs>.ast, $indent) }>
 }
 
-method check-indent(int $sports, int $indent) {
+method check-indent(int $spaces-or-tabs, int $indent) {
     if $indent < 0 {
-        if $sports > nqp::atpos_i(@*INDENT, 0) {
-            nqp::unshift_i(@*INDENT, $sports);
+        if $spaces-or-tabs > nqp::atpos_i(@*INDENT, 0) {
+            nqp::unshift_i(@*INDENT, $spaces-or-tabs);
             1 == 1;
         }
         else {
@@ -205,12 +205,12 @@ method check-indent(int $sports, int $indent) {
         }
     }
     else {
-        $sports == $indent
+        $spaces-or-tabs == $indent
     }
 }
 
 #token DEDENT {
-#    <?before [^^ <sports> [<?{ self.check-dedent($<sports>.ast) }> || <.panic: "Dedent not consistent with any previous indent level">] | $<EOF>=<?> $]
+#    <?before [^^ <spaces-or-tabs> [<?{ self.check-dedent($<spaces-or-tabs>.ast) }> || <.panic: "Dedent not consistent with any previous indent level">] | $<EOF>=<?> $]
 #        || <.panic: "Dedent not at beginning of line">>
 #}
 
@@ -226,13 +226,13 @@ method DEDENT() {
 }
 
 token match-dedent {
-    <sports> [<?{ self.check-dedent($<sports>.ast) }> || <.panic: "Dedent not consistent with any previous indent level">] | $<EOF>=<?> $
+    <spaces-or-tabs> [<?{ self.check-dedent($<spaces-or-tabs>.ast) }> || <.panic: "Dedent not consistent with any previous indent level">] | $<EOF>=<?> $
 }
 
-method check-dedent($sports) {
+method check-dedent($spaces-or-tabs) {
     # Pop indents until we find the level we've indented back to.
-    while $sports < nqp::atpos_i(@*INDENT, 0) { nqp::shift_i(@*INDENT) }
-    $sports == nqp::atpos_i(@*INDENT, 0);
+    while $spaces-or-tabs < nqp::atpos_i(@*INDENT, 0) { nqp::shift_i(@*INDENT) }
+    $spaces-or-tabs == nqp::atpos_i(@*INDENT, 0);
 }
 
 # Spaces or tabs. A valid Python indent consists of any number of spaces, then
@@ -240,7 +240,7 @@ method check-dedent($sports) {
 # and must be rejected (2.1.8: "Indentation is rejected as inconsistent if a
 # source file mixes tabs and spaces in a way that makes the meaning dependent
 # on the worth of a tab in spaces").
-token sports {
+token spaces-or-tabs {
     [ | ^^ \f? (' '*) (\t*) [<[\ \f]> <.panic: "Ambiguous indentation">]?
       | $<EOF>=<?> $
     ]

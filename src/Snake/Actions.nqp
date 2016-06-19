@@ -44,7 +44,7 @@ method string($/) { make $<quote_EXPR>.ast; }
 #method infix:sym<==>($/) { ... }
 #method infix:sym<!=>($/) { ... }
 
-method sports($/) {
+method spaces-or-tabs($/) {
     if $<EOF> { make 0 }
     else {
         my int $indent := 0;
