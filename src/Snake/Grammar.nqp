@@ -127,7 +127,6 @@ token string {
 }
 
 ### 2.4.4: Integer literals
-# TODO: long integer literals
 
 token decint  { [0|<[ 1..9 ]>\d*] }
 
