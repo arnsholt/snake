@@ -127,9 +127,25 @@ token string {
 }
 
 ### 2.4.4: Integer literals
-# Currently handled with HLL::Grammar's built-in <integer>.
-# XXX: Overgenerates a bit, since it accepts 0dXXX decimal ints.
-# XXX: Undergenerates a bit, since it doesn't accept 0X, 0O and 0B.
+# TODO: long integer literals
+
+token decint  { [0|<[ 1..9 ]>\d*] }
+
+token hexint  { [\d|<[ a..f A..F ]>]+ }
+
+token octint  { <[0..7]>+ }
+
+token binint  { <[01]>+ }
+
+token integer {
+    [
+    | 0 [ [b|B] <VALUE=binint>
+        | [o|O] <VALUE=octint>
+        | [x|X] <VALUE=hexint>
+        ]
+    | <VALUE=decint>
+    ]
+}
 
 ### 2.4.5: Floating point literals
 # Currently handled with HLL::Grammar's built-in <dec_number>. I think it even
