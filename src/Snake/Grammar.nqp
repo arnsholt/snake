@@ -32,6 +32,7 @@ INIT {
 
 method TOP() {
     my @*INDENT := nqp::list_i(0);
+    my @*UNREPLACED-INDENT := nqp::list_i(0);
     # XXX: For the time being, we handle variables like NQP: Each scope is a
     # block, which has two Stmts children. We stick variable decls in the
     # first one, and put the actual code as the second one. Undeclared
@@ -188,24 +189,41 @@ token prefix:sym<not> { <sym> <O('%boolnot, :op<isfalse>')> }
 ## 2.6: Delimiters
 # Handled elsewhere, since we don't have a separate lexer stage.
 
-token INDENT($indent = -1) {
+token INDENT(int $want-replaced = -1, int $want-unreplaced = -1) {
     # Gobble up leading whitespace, push new indent onto stack (or die if bad
     # indent).
-    <spaces-or-tabs> <?{ self.check-indent($<spaces-or-tabs>.ast, $indent) }>
+    <spaces-or-tabs> <?{ self.check-indent($<spaces-or-tabs>.ast, nqp::chars(~$<spaces-or-tabs>), $want-replaced, $want-unreplaced) }>
 }
 
-method check-indent(int $spaces-or-tabs, int $indent) {
-    if $indent < 0 {
-        if $spaces-or-tabs > nqp::atpos_i(@*INDENT, 0) {
-            nqp::unshift_i(@*INDENT, $spaces-or-tabs);
-            1 == 1;
+method ambigous-indent() {
+    self.panic("Inconsistent use of tabs and spaces in indentation");
+}
+
+method check-indent(int $got-replaced, int $got-unreplaced, int $want-replaced, int $want-unreplaced) {
+    if $want-replaced < 0 {
+        if $got-replaced > nqp::atpos_i(@*INDENT, 0) {
+            unless $got-unreplaced > nqp::atpos_i(@*UNREPLACED-INDENT, 0) {
+                self.ambigous-indent;
+            }
+
+            nqp::unshift_i(@*INDENT, $got-replaced);
+            nqp::unshift_i(@*UNREPLACED-INDENT, $got-unreplaced);
+
+            1;
         }
         else {
-            1 == 0;
+            0;
         }
     }
     else {
-        $spaces-or-tabs == $indent
+        if $want-replaced == $got-replaced {
+            unless $want-unreplaced == $got-unreplaced {
+                self.ambigous-indent;
+            }
+            1;
+        } else {
+            0;
+        }
     }
 }
 
@@ -226,20 +244,19 @@ method DEDENT() {
 }
 
 token match-dedent {
-    <spaces-or-tabs> [<?{ self.check-dedent($<spaces-or-tabs>.ast) }> || <.panic: "Dedent not consistent with any previous indent level">] | $<EOF>=<?> $
+    <spaces-or-tabs> [<?{ self.check-dedent($<spaces-or-tabs>.ast, nqp::chars(~$<spaces-or-tabs>)) }> || <.panic: "Dedent not consistent with any previous indent level">] | $<EOF>=<?> $
 }
 
-method check-dedent($spaces-or-tabs) {
+method check-dedent($replaced, $unreplaced) {
     # Pop indents until we find the level we've indented back to.
-    while $spaces-or-tabs < nqp::atpos_i(@*INDENT, 0) { nqp::shift_i(@*INDENT) }
-    $spaces-or-tabs == nqp::atpos_i(@*INDENT, 0);
+    while $replaced < nqp::atpos_i(@*INDENT, 0) { nqp::shift_i(@*INDENT) }
+
+    while $unreplaced < nqp::atpos_i(@*UNREPLACED-INDENT, 0) { nqp::shift_i(@*UNREPLACED-INDENT) }
+
+    $replaced == nqp::atpos_i(@*INDENT, 0)
 }
 
-# Spaces or tabs. A valid Python indent consists of any number of spaces, then
-# any number of tabs. If spaces are used after a tab, the indent is ambiguous
-# and must be rejected (2.1.8: "Indentation is rejected as inconsistent if a
-# source file mixes tabs and spaces in a way that makes the meaning dependent
-# on the worth of a tab in spaces").
+# Spaces or tabs. 
 token spaces-or-tabs {
     [ | ^^ \f? (' '|\t)*
       | $<EOF>=<?> $
@@ -334,10 +351,11 @@ token ordinary-statement:sym<continue> { <sym> <.ws> }
 # 8: Compound statements
 proto token compound-statement {*}
 token compound-statement:sym<if> {
-    :my int $indent := nqp::atpos_i(@*INDENT, 0);
+    :my int $replaced := nqp::atpos_i(@*INDENT, 0);
+    :my int $unreplaced := nqp::atpos_i(@*UNREPLACED-INDENT, 0);
     [:s<sym> <EXPR> ':' <suite>]
-    [:s<.INDENT: $indent> 'elif' <elif=.EXPR> ':' <elif=.suite>]?
-    [:s<.INDENT: $indent> 'else' ':' <else=.suite>]?
+    [:s<.INDENT($replaced, $unreplaced)> 'elif' <elif=.EXPR> ':' <elif=.suite>]?
+    [:s<.INDENT($replaced, $unreplaced)> 'else' ':' <else=.suite>]?
 }
 
 # TODO: Else part of while loop.
@@ -408,9 +426,10 @@ token suite:sym<normal> {
     # The breakage occurs if the suite contains a single compound statement.
     # In that case, we'll save the indent level of whatever comes after the
     # suite instead of the real one.
-    :my $indent := nqp::atpos_i(@*INDENT, 0);
+    :my int $replaced := nqp::atpos_i(@*INDENT, 0);
+    :my int $unreplaced := nqp::atpos_i(@*UNREPLACED-INDENT, 0);
     <statement>
-    [<.INDENT: $indent> <statement>]*
+    [<.INDENT($replaced, $unreplaced)> <statement>]*
     <.DEDENT>
 }
 
