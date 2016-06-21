@@ -148,8 +148,12 @@ token integer {
 }
 
 ### 2.4.5: Floating point literals
-# Currently handled with HLL::Grammar's built-in <dec_number>. I think it even
-# covers the same cases as Python wants.
+
+token dec_number {
+    | $<coeff>=[     '.' \d+ ] <escale>?
+    | $<coeff>=[ \d+ '.' \d* ] <escale>?
+    | $<coeff>=[ \d+         ] <escale>
+}
 
 ### 2.4.6: Imaginary literals
 # TODO
