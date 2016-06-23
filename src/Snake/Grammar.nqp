@@ -76,7 +76,11 @@ method ws() { $*WS_NL ?? self.ws-nl !! self.ws-nonl }
 ## 2.3: Identifiers and keywords
 # TODO: xid_start/xid_continue, which is defined as anything that is
 # equivalent to id_start/id_continue when NFKC-normalized.
-token identifier  { <id_start> <id_continue>* }
+
+my %keywords;
+
+token identifier  { <id_start> <id_continue>* <?{!nqp::existskey(%keywords, ~$/)}>}
+
 # Other_ID_Start and _Continue don't exist in NQP yet, so let's skip those for
 # now.
 #token id_start    { <+:Lu+:Ll+:Lt+:Lm+:Lo+:Nl+[_]+:Other_ID_Start> }
@@ -85,40 +89,19 @@ token id_start    { <+:Lu+:Ll+:Lt+:Lm+:Lo+:Nl+[_]> }
 token id_continue { <+id_start+:Mn+:Mc+:Nd+:Pc> }
 
 ### 2.3.1: Keywords
-proto token keyword {*}
-token keyword:sym<False>    { <sym> }
-token keyword:sym<class>    { <sym> }
-token keyword:sym<finally>  { <sym> }
-token keyword:sym<is>       { <sym> }
-token keyword:sym<return>   { <sym> }
-token keyword:sym<None>     { <sym> }
-token keyword:sym<continue> { <sym> }
-token keyword:sym<for>      { <sym> }
-token keyword:sym<lambda>   { <sym> }
-token keyword:sym<try>      { <sym> }
-token keyword:sym<True>     { <sym> }
-token keyword:sym<def>      { <sym> }
-token keyword:sym<from>     { <sym> }
-token keyword:sym<nonlocal> { <sym> }
-token keyword:sym<while>    { <sym> }
-token keyword:sym<and>      { <sym> }
-token keyword:sym<del>      { <sym> }
-token keyword:sym<global>   { <sym> }
-token keyword:sym<not>      { <sym> }
-token keyword:sym<with>     { <sym> }
-token keyword:sym<as>       { <sym> }
-token keyword:sym<elif>     { <sym> }
-token keyword:sym<if>       { <sym> }
-token keyword:sym<or>       { <sym> }
-token keyword:sym<yield>    { <sym> }
-token keyword:sym<assert>   { <sym> }
-token keyword:sym<else>     { <sym> }
-token keyword:sym<import>   { <sym> }
-token keyword:sym<pass>     { <sym> }
-token keyword:sym<break>    { <sym> }
-token keyword:sym<except>   { <sym> }
-token keyword:sym<in>       { <sym> }
-token keyword:sym<raise>    { <sym> }
+
+# XXX - None is also a keyword
+for <
+        False  class    finally is       return
+               continue for     lambda   try
+        True   def      from    nonlocal while
+        and    del      global  not      with
+        as     elif     if      or       yield
+        assert else     import  pass
+        break  except   in      raise
+    > -> $keyword {
+    %keywords{$keyword} := 1;
+}
 
 ### 2.4.3: String literals
 token string {
