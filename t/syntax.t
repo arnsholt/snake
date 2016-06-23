@@ -1,4 +1,4 @@
-print("1..10")
+print("1..11")
 
 def isequal_i(a, b):
     if nqp::iseq_i(a, b):
@@ -24,3 +24,7 @@ isequal_n(0e0, 0)
 isequal_n(.001, 0.001)
 isequal_n(010.2, 10.2)
 isequal_n(02e02, 200)
+
+# test using GREEK ANO TELEIA as part of an identifier
+foo·bar = "ok 11"
+print(foo·bar)

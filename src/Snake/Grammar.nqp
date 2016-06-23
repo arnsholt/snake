@@ -81,12 +81,8 @@ my %keywords;
 
 token identifier  { <id_start> <id_continue>* <?{!nqp::existskey(%keywords, ~$/)}>}
 
-# Other_ID_Start and _Continue don't exist in NQP yet, so let's skip those for
-# now.
-#token id_start    { <+:Lu+:Ll+:Lt+:Lm+:Lo+:Nl+[_]+:Other_ID_Start> }
-#token id_continue { <+id_start+:Mn+:Mc+:Nd+:Pc+:Other_ID_Continue> }
-token id_start    { <+:Lu+:Ll+:Lt+:Lm+:Lo+:Nl+[_]> }
-token id_continue { <+id_start+:Mn+:Mc+:Nd+:Pc> }
+token id_start    { <+:Lu+:Ll+:Lt+:Lm+:Lo+:Nl+[_]+:Other_ID_Start> }
+token id_continue { <+id_start+:Mn+:Mc+:Nd+:Pc+:Other_ID_Continue> }
 
 ### 2.3.1: Keywords
 
