@@ -1,4 +1,4 @@
-PREFIX=../nqp/install
+PREFIX=../MoarVM/install
 NQP=$(PREFIX)/bin/nqp-m
 MOAR=$(PREFIX)/bin/moar
 

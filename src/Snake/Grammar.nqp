@@ -7,28 +7,26 @@ use Snake::ModuleLoader;
 use Snake::World;
 
 # Operator precedence levels, from tightest to loosest.
-INIT {
-    # Precedence levels not found in the standard grammar, since we factor
-    # things a bit differently, with invocation, calls and the like (what the
-    # standard grammar calls "primaries") being operators rather than separate
-    # lexical categories.
-    Snake::Grammar.O(':prec<z> :assoc<unary>', '%dotty');
-    Snake::Grammar.O(':prec<y> :assoc<unary>', '%subscript');
-    Snake::Grammar.O(':prec<x> :assoc<unary>', '%call');
+# Precedence levels not found in the standard grammar, since we factor
+# things a bit differently, with invocation, calls and the like (what the
+# standard grammar calls "primaries") being operators rather than separate
+# lexical categories.
+my %dotty     := nqp::hash('prec', 'z', 'assoc', 'unary');
+my %subscript := nqp::hash('prec', 'y', 'assoc', 'unary');
+my %call      := nqp::hash('prec', 'x', 'assoc', 'unary');
 
-    Snake::Grammar.O(':prec<o> :assoc<right>', '%exponentiation');
-    Snake::Grammar.O(':prec<n> :assoc<unary>', '%unary');
-    Snake::Grammar.O(':prec<m> :assoc<left>',  '%multiplicative');
-    Snake::Grammar.O(':prec<l> :assoc<left>',  '%additive');
-    Snake::Grammar.O(':prec<k> :assoc<left>',  '%bitshift');
-    Snake::Grammar.O(':prec<j> :assoc<left>',  '%bitand');
-    Snake::Grammar.O(':prec<i> :assoc<left>',  '%bitxor');
-    Snake::Grammar.O(':prec<h> :assoc<left>',  '%bitor');
-    Snake::Grammar.O(':prec<g> :assoc<left>',  '%relational'); # TODO: Actually chaining operators
-    Snake::Grammar.O(':prec<f> :assoc<unary>', '%boolnot');
-    Snake::Grammar.O(':prec<e> :assoc<left>',  '%booland');
-    Snake::Grammar.O(':prec<d> :assoc<left>',  '%boolor');
-}
+my %exponentiation := nqp::hash('prec', 'o', 'assoc', 'right');
+my %unary          := nqp::hash('prec', 'n', 'assoc', 'unary');
+my %multiplicative := nqp::hash('prec', 'm', 'assoc', 'left');
+my %additive       := nqp::hash('prec', 'l', 'assoc', 'left');
+my %bitshift       := nqp::hash('prec', 'k', 'assoc', 'left');
+my %bitand         := nqp::hash('prec', 'j', 'assoc', 'left');
+my %bitxor         := nqp::hash('prec', 'i', 'assoc', 'left');
+my %bitor          := nqp::hash('prec', 'h', 'assoc', 'left');
+my %relational     := nqp::hash('prec', 'g', 'assoc', 'left'); # TODO: Actually chaining operators
+my %boolnot        := nqp::hash('prec', 'f', 'assoc', 'unary');
+my %booland        := nqp::hash('prec', 'e', 'assoc', 'left');
+my %boolor         := nqp::hash('prec', 'd', 'assoc', 'left');
 
 method TOP() {
     my @*INDENT := nqp::list_i(0);
@@ -140,9 +138,9 @@ token dec_number {
 ## 2.5: Operators
 # TODO: I think the default NQP arithmetic ops have slightly wrong semantics
 # for Python.
-token prefix:sym<~> { <sym> <O('%unary, :op<bitneg_i>')> }
-token prefix:sym<+> { <sym> <O('%unary')> }
-token prefix:sym<-> { <sym> <O('%unary, :op<neg_n>')> }
+token prefix:sym<~> { <sym> <O(|%unary, :op<bitneg_i>)> }
+token prefix:sym<+> { <sym> <O(|%unary)> }
+token prefix:sym<-> { <sym> <O(|%unary, :op<neg_n>)> }
 
 token infix:sym<+>  { <sym> }
 token infix:sym<->  { <sym> }
@@ -163,11 +161,11 @@ token infix:sym«>=» { <sym> }
 token infix:sym<==> { <sym> }
 token infix:sym<!=> { <sym> }
 
-token infix:sym<is> { <sym> <O('%relational, :op<eqaddr>')> }
+token infix:sym<is> { <sym> <O(|%relational, :op<eqaddr>)> }
 
-token infix:sym<and> { <sym> <O('%booland, :op<if>')> }
-token infix:sym<or> { <sym> <O('%booland, :op<unless>')> }
-token prefix:sym<not> { <sym> <O('%boolnot, :op<isfalse>')> }
+token infix:sym<and> { <sym> <O(|%booland, :op<if>)> }
+token infix:sym<or> { <sym> <O(|%booland, :op<unless>)> }
+token prefix:sym<not> { <sym> <O(|%boolnot, :op<isfalse>)> }
 
 ## 2.6: Delimiters
 # Handled elsewhere, since we don't have a separate lexer stage.
@@ -296,12 +294,12 @@ rule positionals { [<EXPR> <.ws> <?before \, | \)>]+ % [ \, ] }
 rule nameds { [<identifier> \= <EXPR>]+ % [ \, ] }
 
 ## 6.3: Primaries
-token postfix:sym<attribute> { '.' <identifier> <O('%dotty')> }
+token postfix:sym<attribute> { '.' <identifier> <O(|%dotty)> }
 token postcircumfix:sym<( )> {
     '(' ~ ')' [:s:my $*WS_NL := 1;
         <EXPR>+ % [ ',' ] [',' '*' <flat=.EXPR>]?
         | '*' <flat=.EXPR>
-    ]? <O('%call')>
+    ]? <O(|%call)>
 }
 
 ## 6.13: Expression lists
